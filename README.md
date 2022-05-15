@@ -8,4 +8,4 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Introduction to Convolutional Neural Networks
 
-* [Introduction to Neural Networks](https://github.com/udacity/deep-learning-v2-pytorch/tree/master/intro-neural-networks): Learn how to implement gradient descent and apply it to predicting patterns in student admissions data.
+* [Introduction to Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement style transferring to create museum-worthy masterpieces.
