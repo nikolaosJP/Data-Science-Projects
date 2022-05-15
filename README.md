@@ -8,4 +8,4 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Introduction to Convolutional Neural Networks
 
-* [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement style transferring to create museum-worthy masterpieces.
+* [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
