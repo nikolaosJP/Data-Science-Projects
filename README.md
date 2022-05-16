@@ -6,10 +6,11 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ## Table Of Contents
 
+### Feedforward Artificial Neural Network
+
+* [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring%20MNIST%20Dataset%20with%20MLPs): Train a multilayer perceptron (MLP) deep neural network on MNIST dataset.
+
 ### Convolutional Neural Networks
 
 * [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
 
-### Convolutional Neural Networks
-
-* [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring%20MNIST%20Dataset%20with%20MLPs): Train a multilayer perceptron (MLP) deep neural network on MNIST dataset.
