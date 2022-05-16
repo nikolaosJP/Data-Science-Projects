@@ -6,7 +6,7 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ## Table Of Contents
 
-### Feedforward Artificial Neural Network
+### Feedforward Artificial Neural Networks
 
 * [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring%20MNIST%20Dataset%20with%20MLPs): Train a multilayer perceptron (MLP) deep neural network on MNIST dataset.
 
