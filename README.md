@@ -4,7 +4,7 @@ This repository contains numerous jupyter notebooks covering a wide range of mac
 
 In most cases, the notebooks are meant to be minimal and easily reusable and extendable. You are free to use them for educational and research purposes.
 
-## Table Of Contents
+## Table of Contents
 
 ### Feedforward Artificial Neural Networks
 
