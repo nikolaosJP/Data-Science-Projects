@@ -1,6 +1,7 @@
 # Anyone can become a great artist
 
 ![Imgur Image](https://www.researchgate.net/profile/Steven-Young-5/publication/306056875/figure/fig1/AS:393921575309346@1470929630835/Example-images-from-the-MNIST-dataset.png)
+
 Image Source: Lim, S., Young, S. R., & Patton, R. M. (2016). An analysis of image storage systems for scalable training of deep neural networks. The Seventh Workshop on Big Data Benchmarks, Performance Optimization, and Emerging Hardware (in Conjunction with ASPLOS’16), April.
 
 
