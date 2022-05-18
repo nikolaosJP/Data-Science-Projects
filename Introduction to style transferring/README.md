@@ -1,7 +1,7 @@
 # Anyone can become a great artist
 
 ![Imgur Image](https://ml4a.github.io/images/headers/monalisa_stylenet.jpg)
-Image Source: https://ml4a.net/
+>Image Source: https://ml4a.net/
 
 The work of a great painter is often valued for its unique style, typically reflected in the artist's choice of color and brush strokes. Today, deep learning allows us to imitate the paintings of reputable artists such as Vincent van Gogh and Salvador Dalí with generative adversarial networks (GANs) and convolutional neural networks (CNNs) through a process referred to as neural style transferring.
 
