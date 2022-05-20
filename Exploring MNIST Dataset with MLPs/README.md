@@ -1,7 +1,7 @@
 # Multilayer Perceptron Training for MNIST Classification
 
-![Imgur Image](https://royalsocietypublishing.org/cms/asset/7a534127-2f26-4dd5-9f55-dd72a512f42f/rsta20190163f02.png)
->Image Source: https://royalsociety.org/journals/
+![Imgur Image](https://image.itmedia.co.jp/ait/articles/2005/28/cover_news016.png)
+>Image Source: https://image.itmedia.co.jp
 
 The MNIST database (Modified National Institute of Standards and Technology database) is a large collection of handwritten digits. It has a training set of 60,000 examples, and a test set of 10,000 examples. It is a subset of a larger NIST Special Database 3 (digits written by employees of the United States Census Bureau) and Special Database 1 (digits written by high school students) which contain monochrome images of handwritten digits. The digits have been size-normalized and centered in a fixed-size image. The original black and white (bilevel) images from NIST were size normalized to fit in a 20x20 pixel box while preserving their aspect ratio. The resulting images contain grey levels as a result of the anti-aliasing technique used by the normalization algorithm. the images were centered in a 28x28 image by computing the center of mass of the pixels, and translating the image so as to position this point at the center of the 28x28 field.
 >Source: http://yann.lecun.com/exdb/mnist/
