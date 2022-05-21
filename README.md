@@ -12,6 +12,6 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Convolutional Neural Networks
 
-* [Anomaly Detection with Transfer Learning](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/MVTec%20Anomaly%20Detection): Deploy Custom multi-class classification model with a VGG16 feature extractor to detect anomalous structures.
+* [Anomaly Detection with Transfer Learning](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/MVTec%20Anomaly%20Detection): Deploy multi-class classification model with a VGG16 feature extractor to detect anomalous structures.
 * [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
 
