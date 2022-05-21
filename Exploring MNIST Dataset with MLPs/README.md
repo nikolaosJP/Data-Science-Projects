@@ -10,4 +10,6 @@ In this IPython notebook we will use PyTorch, a deep learning library to build a
 
 Unlike CNNs which take tensors as inputs, an MLP only recognizes vectors as inputs and thus it is not capable of understanding the spatial relations between the pixels of a given image. Nevertheless, an MLP classifier can perform exceptionally well on images that have undergone a thorough pre-processing. As we will see later, the model presented here can achieve an accuracy of 98% on an unseen test set, which is satisfactory.
 
+# License
 
+This project is licensed under the terms of the [MIT license](https://choosealicense.com/licenses/mit/).
