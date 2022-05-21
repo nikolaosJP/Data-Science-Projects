@@ -20,8 +20,8 @@ The model was trained on two subsets of the MVTec Anomaly Detection Dataset, nam
 Table 1: Summary of the findings 
 | Subset Title  | Test Accuracy | Balanced Test Accuracy | Confusion Matrix Labels          |
 | ------------- | ------------- | -------------          | -------------                    |
-| Carpet        | 0.91          | 0.88                   | TP = 57, TN = 15, FP = 3, FN = 4 |
-| Capsule       | 0.93          | 0.91                   | TP = 46, TN = 19, FP = 3, FN = 2 |
+| Carpet        | 91.0%          | 88.0%                   | TP = 57, TN = 15, FP = 3, FN = 4 |
+| Capsule       | 93.0%          | 91.0%                   | TP = 46, TN = 19, FP = 3, FN = 2 |
 
 A simple illustration of the anomalies detected.
 
