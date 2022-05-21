@@ -37,3 +37,7 @@ Paul Bergmann, Kilian Batzner, Michael Fauser, David Sattlegger, Carsten Steger:
 
 Olga Chernytska, Visual Inspection, GitHub repository, https://github.com/OlgaChernytska/Visual-Inspection, 2022
 
+# License
+
+This project is licensed under the terms of the [MIT license](https://choosealicense.com/licenses/mit/).
+
