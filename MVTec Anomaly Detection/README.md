@@ -5,7 +5,7 @@
 
 MVTec AD is an open access dataset (see [MVTec dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)) used for training anomaly detection ML algorithms. It contains over 5.000 high-res images divided into 15 different objects, some of which are characterised by a morphological anomaly. These anomalies are manifested in a myriad of forms such as scratches, dents, or other structural irregularities.
 
-In this IPython notebook we will use Transfer Learning, a popular approach in deep learning, to firstly distinguish objects in pristine condition from those with anomalies and secondly to detect the exact location of any potential physical defects. Transfer Learning, in case you are unfamiliar with the concept, is a technique used to expediate the training period of deep convolutional neural networks. This is achieved by utilizing weights from pre-trained models that were developed for visual object recognition software research. Top performing models can be downloaded and used directly, or integrated into a new model to solve new tasks.
+In this IPython notebook we will use Transfer Learning, a popular approach in deep learning, to firstly distinguish objects in pristine condition from those with anomalies and secondly to detect the exact location of any potential physical defects. Transfer Learning, in case you are unfamiliar with the concept, is a technique used to expedite the training period of deep convolutional neural networks. This is achieved by utilizing weights from pre-trained models that were developed for visual object recognition software research. Top performing models can be downloaded and used directly, or integrated into a new model to solve new tasks.
 
 # Model Architecture
 
