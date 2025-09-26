@@ -205,6 +205,16 @@ class App {
     document.getElementById('next-step').disabled = true;
     document.getElementById('ols-calculations').style.display = 'none';
     document.getElementById('manual-calculations').style.display = 'none';
+    ['ols-m', 'ols-b', 'ols-r2', 'ols-mse', 'cost-value', 'grad-m-val', 'grad-b-val',
+     'new-m-val', 'new-b-val', 'final-b1', 'final-b0'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    const tablesToClear = ['pred-body', 'manual-body'];
+    tablesToClear.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
     for (let i = 0; i <= 4; i++) {
       const el = document.getElementById(`step-${i}`);
       if (el) el.style.display = 'none';
