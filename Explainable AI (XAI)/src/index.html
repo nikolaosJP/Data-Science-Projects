@@ -15,317 +15,173 @@
     <div class="hint">Click to add • Drag to move • Right-click to delete</div>
   </div>
 
-  <div class="category-tabs">
-    <div class="category-tab active" data-category="regression">Regression</div>
-    <div class="category-tab" data-category="statistics">Statistics</div>
+  <div class="tabs">
+    <div class="tab active" data-tab="ols">OLS</div>
+    <div class="tab" data-tab="gd">Gradient Descent</div>
+    <div class="tab" data-tab="manual">Manual</div>
   </div>
 
-  <div class="category-content active" id="category-regression">
-    <div class="tabs">
-      <div class="tab active" data-tab="ols">OLS</div>
-      <div class="tab" data-tab="gd">Gradient Descent</div>
-      <div class="tab" data-tab="manual">Manual</div>
+  <div class="panel">
+    <div class="controls">
+      <button id="clear">Clear</button>
+      <button id="sample">Sample</button>
+      <label><input id="residuals" type="checkbox" checked> Residuals</label>
+      <span><strong>Points: </strong><span id="point-count">0</span></span>
     </div>
+  </div>
 
-    <div class="panel">
-      <div class="controls">
-        <button id="clear">Clear</button>
-        <button id="sample">Sample</button>
-        <label><input id="residuals" type="checkbox" checked> Residuals</label>
-        <span><strong>Points: </strong><span id="point-count">0</span></span>
+  <!-- OLS Tab -->
+  <div class="tab-content active" id="tab-ols">
+    <div class="main-grid">
+      <div class="panel">
+        <canvas id="plot-ols" width="800" height="500"></canvas>
       </div>
-    </div>
-
-    <!-- OLS Tab -->
-    <div class="tab-content active" id="tab-ols">
-      <div class="main-grid">
+      <div>
         <div class="panel">
-          <canvas id="plot-ols" width="800" height="500"></canvas>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>OLS</h3>
-            <button id="solve-ols" class="primary">Solve</button>
-            <div class="formula" id="ols-formula"></div>
-            <div class="values-grid">
-              <div class="value-box"><strong>m</strong><div id="ols-m">—</div></div>
-              <div class="value-box"><strong>b</strong><div id="ols-b">—</div></div>
-              <div class="value-box"><strong>R²</strong><div id="ols-r2">—</div></div>
-              <div class="value-box"><strong>MSE</strong><div id="ols-mse">—</div></div>
-            </div>
-            <div id="ols-calculations" style="display:none">
-              <h4>Steps</h4>
-              <div class="calculations" id="ols-steps"></div>
-            </div>
+          <h3>OLS</h3>
+          <button id="solve-ols" class="primary">Solve</button>
+          <div class="formula" id="ols-formula"></div>
+          <div class="values-grid">
+            <div class="value-box"><strong>m</strong><div id="ols-m">—</div></div>
+            <div class="value-box"><strong>b</strong><div id="ols-b">—</div></div>
+            <div class="value-box"><strong>R²</strong><div id="ols-r2">—</div></div>
+            <div class="value-box"><strong>MSE</strong><div id="ols-mse">—</div></div>
+          </div>
+          <div id="ols-calculations" style="display:none">
+            <h4>Steps</h4>
+            <div class="calculations" id="ols-steps"></div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- GD Tab -->
-    <div class="tab-content" id="tab-gd">
-      <div class="main-grid">
-        <div class="panel">
-          <div class="gd-grid">
-            <div>
-              <div class="subtle">Data + Fit</div>
-              <canvas id="plot-gd" width="800" height="500"></canvas>
-            </div>
-            <div>
-              <div class="subtle">Loss History</div>
-              <canvas id="loss-plot" width="380" height="500"></canvas>
-            </div>
+  <!-- GD Tab -->
+  <div class="tab-content" id="tab-gd">
+    <div class="main-grid">
+      <div class="panel">
+        <div class="gd-grid">
+          <div>
+            <div class="subtle">Data + Fit</div>
+            <canvas id="plot-gd" width="800" height="500"></canvas>
           </div>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>Gradient Descent</h3>
-            <div class="controls">
-              <button id="init-gd" class="warning">Initialize</button>
-              <button id="next-step" class="success" disabled>Next</button>
-              <button id="auto-run">Auto</button>
-              <button id="reset-gd">Reset</button>
-            </div>
-            <label>η: <input id="lr" type="number" step="0.01" value="0.1" min="0.001"></label>
-            <div class="iteration-info">
-              <strong>Iter: </strong><span id="iteration">0</span> •
-              <strong>Step: </strong><span id="current-step-name">Not Started</span>
-            </div>
-
-            <!-- GD Steps -->
-            <div class="step-info" id="step-0" style="display:none">
-              <div class="step-title">Step 0: Init</div>
-              <div class="formula" id="gd-init-formula"></div>
-            </div>
-            <div class="step-info" id="step-1" style="display:none">
-              <div class="step-title">Step 1: Predictions</div>
-              <div class="formula" id="gd-h-formula"></div>
-              <div class="table-container">
-                <table id="pred-table">
-                  <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>hᵢ</th><th>Error</th></tr></thead>
-                  <tbody id="pred-body"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="step-info" id="step-2" style="display:none">
-              <div class="step-title">Step 2: Cost</div>
-              <div class="formula" id="gd-j-formula"></div>
-              <div class="value-box"><strong>J</strong><div id="cost-value">—</div></div>
-            </div>
-            <div class="step-info" id="step-3" style="display:none">
-              <div class="step-title">Step 3: Gradients</div>
-              <div class="formula" id="gd-grads-formula"></div>
-              <div class="values-grid">
-                <div class="value-box"><strong>∂J/∂m</strong><div id="grad-m-val">—</div></div>
-                <div class="value-box"><strong>∂J/∂b</strong><div id="grad-b-val">—</div></div>
-              </div>
-            </div>
-            <div class="step-info" id="step-4" style="display:none">
-              <div class="step-title">Step 4: Update</div>
-              <div class="formula" id="gd-update-formula"></div>
-              <div class="values-grid">
-                <div class="value-box"><strong>New m</strong><div id="new-m-val">—</div></div>
-                <div class="value-box"><strong>New b</strong><div id="new-b-val">—</div></div>
-              </div>
-            </div>
+          <div>
+            <div class="subtle">Loss History</div>
+            <canvas id="loss-plot" width="380" height="500"></canvas>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Manual Tab -->
-    <div class="tab-content" id="tab-manual">
-      <div class="main-grid">
+      <div>
         <div class="panel">
-          <canvas id="plot-manual" width="800" height="500"></canvas>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>Manual Stats</h3>
-            <button id="calculate-manual" class="primary">Calculate</button>
-            <div id="manual-calculations" style="display:none">
-              <h4>Means</h4>
-              <div class="calculations">
-                <div class="calc-step"><span id="mean-x-tex"></span></div>
-                <div class="calc-step"><span id="mean-y-tex"></span></div>
-              </div>
-              <h4>Sums of Squares</h4>
-              <div class="calculations">
-                <div class="calc-step"><span id="ssxx-tex"></span></div>
-                <div class="calc-step"><span id="ssyy-tex"></span></div>
-                <div class="calc-step"><span id="ssxy-tex"></span></div>
-              </div>
-              <h4>Coefficients</h4>
-              <div class="calculations">
-                <div class="calc-step"><span id="b1-tex"></span></div>
-                <div class="calc-step"><span id="b0-tex"></span></div>
-              </div>
-              <h4>Errors</h4>
-              <div class="calculations">
-                <div class="calc-step"><span id="tss-tex"></span></div>
-                <div class="calc-step"><span id="ess-tex"></span></div>
-                <div class="calc-step"><span id="rss-tex"></span></div>
-              </div>
-              <h4>Fit</h4>
-              <div class="calculations">
-                <div class="calc-step"><span id="r2-tex"></span></div>
-                <div class="calc-step"><span id="mse-tex"></span></div>
-                <div class="calc-step"><span id="rmse-tex"></span></div>
-              </div>
-              <div class="values-grid">
-                <div class="value-box"><strong>Final b₁</strong><div id="final-b1">—</div></div>
-                <div class="value-box"><strong>Final b₀</strong><div id="final-b0">—</div></div>
-              </div>
-            </div>
+          <h3>Gradient Descent</h3>
+          <div class="controls">
+            <button id="init-gd" class="warning">Initialize</button>
+            <button id="next-step" class="success" disabled>Next</button>
+            <button id="auto-run">Auto</button>
+            <button id="reset-gd">Reset</button>
           </div>
-          <div class="panel">
-            <h3>Data Table</h3>
+          <label>η: <input id="lr" type="number" step="0.01" value="0.1" min="0.001"></label>
+          <div class="iteration-info">
+            <strong>Iter: </strong><span id="iteration">0</span> •
+            <strong>Step: </strong><span id="current-step-name">Not Started</span>
+          </div>
+
+          <!-- GD Steps -->
+          <div class="step-info" id="step-0" style="display:none">
+            <div class="step-title">Step 0: Init</div>
+            <div class="formula" id="gd-init-formula"></div>
+          </div>
+          <div class="step-info" id="step-1" style="display:none">
+            <div class="step-title">Step 1: Predictions</div>
+            <div class="formula" id="gd-h-formula"></div>
             <div class="table-container">
-              <table id="manual-table">
-                <thead>
-
-                  <tr>
-                    <th>i</th>
-                    <th>xᵢ</th>
-                    <th>yᵢ</th>
-                    <th>x-x̄</th>
-                    <th>y-ȳ</th>
-                    <th>(x-x̄)²</th>
-                    <th>(y-ȳ)²</th>
-                    <th>(x-x̄)(y-ȳ)</th>
-                  </tr>
-
-                </thead>
-                <tbody id="manual-body"></tbody>
+              <table id="pred-table">
+                <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>hᵢ</th><th>Error</th></tr></thead>
+                <tbody id="pred-body"></tbody>
               </table>
             </div>
           </div>
-
+          <div class="step-info" id="step-2" style="display:none">
+            <div class="step-title">Step 2: Cost</div>
+            <div class="formula" id="gd-j-formula"></div>
+            <div class="value-box"><strong>J</strong><div id="cost-value">—</div></div>
+          </div>
+          <div class="step-info" id="step-3" style="display:none">
+            <div class="step-title">Step 3: Gradients</div>
+            <div class="formula" id="gd-grads-formula"></div>
+            <div class="values-grid">
+              <div class="value-box"><strong>∂J/∂m</strong><div id="grad-m-val">—</div></div>
+              <div class="value-box"><strong>∂J/∂b</strong><div id="grad-b-val">—</div></div>
+            </div>
+          </div>
+          <div class="step-info" id="step-4" style="display:none">
+            <div class="step-title">Step 4: Update</div>
+            <div class="formula" id="gd-update-formula"></div>
+            <div class="values-grid">
+              <div class="value-box"><strong>New m</strong><div id="new-m-val">—</div></div>
+              <div class="value-box"><strong>New b</strong><div id="new-b-val">—</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="category-content" id="category-statistics">
-    <div class="stats-tabs">
-      <div class="stats-tab active" data-stats-tab="corr">Correlation &amp; Covariance</div>
-      <div class="stats-tab" data-stats-tab="ttest">Welch's t-test</div>
-      <div class="stats-tab" data-stats-tab="anova">One-way ANOVA</div>
-    </div>
-
-    <div class="stats-tab-content active" id="stats-tab-corr">
-      <div class="main-grid stats-layout">
-        <div class="panel">
-          <canvas id="corr-plot" width="780" height="420"></canvas>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>Correlation &amp; Covariance</h3>
-            <div class="stats-toolbar stacked">
-              <div class="hint small">Click the canvas to add paired samples. Drag points to adjust and right-click to remove them.</div>
-              <button id="corr-clear" class="ghost">Clear points</button>
-            </div>
-            <button id="compute-corr" class="primary">Compute</button>
-            <div class="formula" id="corr-formula"></div>
-            <div class="formula" id="cov-formula"></div>
-            <div class="values-grid stats-values">
-              <div class="value-box"><strong>n</strong><div id="corr-n">—</div></div>
-              <div class="value-box"><strong>x̄</strong><div id="corr-mean-x">—</div></div>
-              <div class="value-box"><strong>ȳ</strong><div id="corr-mean-y">—</div></div>
-              <div class="value-box"><strong>Cov</strong><div id="corr-cov">—</div></div>
-              <div class="value-box"><strong>r</strong><div id="corr-r">—</div></div>
-
-            </div>
-          </div>
-          <div class="panel subtle-panel">
-            <h4>Components</h4>
-
-            <div class="calculations" id="corr-steps"></div>
-
-          </div>
-        </div>
+  <!-- Manual Tab -->
+  <div class="tab-content" id="tab-manual">
+    <div class="main-grid">
+      <div class="panel">
+        <canvas id="plot-manual" width="800" height="500"></canvas>
       </div>
-    </div>
-
-    <div class="stats-tab-content" id="stats-tab-ttest">
-      <div class="main-grid stats-layout">
+      <div>
         <div class="panel">
-          <canvas id="ttest-plot" width="780" height="420"></canvas>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>Welch's t-test</h3>
-            <div class="stats-toolbar">
-              <div class="group-selector">
-                <label><input type="radio" name="ttest-group" value="0" checked> Group A</label>
-                <label><input type="radio" name="ttest-group" value="1"> Group B</label>
-              </div>
-              <button id="ttest-clear" class="ghost">Clear groups</button>
+          <h3>Manual Stats</h3>
+          <button id="calculate-manual" class="primary">Calculate</button>
+          <div id="manual-calculations" style="display:none">
+            <h4>Means</h4>
+            <div class="calculations">
+              <div class="calc-step"><span id="mean-x-tex"></span></div>
+              <div class="calc-step"><span id="mean-y-tex"></span></div>
             </div>
-            <div class="hint small">Select a group, then click the canvas to add samples. Drag to adjust values and right-click to remove points.</div>
-            <button id="compute-ttest" class="primary">Compute</button>
-            <div class="formula" id="ttest-formula"></div>
-            <div class="formula" id="ttest-df-formula"></div>
-            <div class="values-grid stats-values">
-              <div class="value-box"><strong>n₁</strong><div id="ttest-n1">—</div></div>
-              <div class="value-box"><strong>n₂</strong><div id="ttest-n2">—</div></div>
-              <div class="value-box"><strong>ȳ₁</strong><div id="ttest-mean-a">—</div></div>
-              <div class="value-box"><strong>ȳ₂</strong><div id="ttest-mean-b">—</div></div>
-              <div class="value-box"><strong>s₁²</strong><div id="ttest-var-a">—</div></div>
-              <div class="value-box"><strong>s₂²</strong><div id="ttest-var-b">—</div></div>
-              <div class="value-box"><strong>t</strong><div id="ttest-t">—</div></div>
-              <div class="value-box"><strong>df</strong><div id="ttest-df">—</div></div>
-              <div class="value-box"><strong>p (two-tailed)</strong><div id="ttest-p">—</div></div>
-
+            <h4>Sums of Squares</h4>
+            <div class="calculations">
+              <div class="calc-step"><span id="ssxx-tex"></span></div>
+              <div class="calc-step"><span id="ssyy-tex"></span></div>
+              <div class="calc-step"><span id="ssxy-tex"></span></div>
+            </div>
+            <h4>Coefficients</h4>
+            <div class="calculations">
+              <div class="calc-step"><span id="b1-tex"></span></div>
+              <div class="calc-step"><span id="b0-tex"></span></div>
+            </div>
+            <h4>Errors</h4>
+            <div class="calculations">
+              <div class="calc-step"><span id="tss-tex"></span></div>
+              <div class="calc-step"><span id="ess-tex"></span></div>
+              <div class="calc-step"><span id="rss-tex"></span></div>
+            </div>
+            <h4>Fit</h4>
+            <div class="calculations">
+              <div class="calc-step"><span id="r2-tex"></span></div>
+              <div class="calc-step"><span id="mse-tex"></span></div>
+              <div class="calc-step"><span id="rmse-tex"></span></div>
+            </div>
+            <div class="values-grid">
+              <div class="value-box"><strong>Final b₁</strong><div id="final-b1">—</div></div>
+              <div class="value-box"><strong>Final b₀</strong><div id="final-b0">—</div></div>
             </div>
           </div>
-          <div class="panel subtle-panel">
-            <h4>Components</h4>
-            <div class="calculations" id="ttest-steps"></div>
-          </div>
         </div>
-      </div>
-    </div>
-
-    <div class="stats-tab-content" id="stats-tab-anova">
-      <div class="main-grid stats-layout">
         <div class="panel">
-          <canvas id="anova-plot" width="780" height="420"></canvas>
-        </div>
-        <div>
-          <div class="panel">
-            <h3>One-way ANOVA</h3>
-            <div class="stats-toolbar wrap">
-              <div class="group-selector">
-                <label><input type="radio" name="anova-group" value="0" checked> Group 1</label>
-                <label><input type="radio" name="anova-group" value="1"> Group 2</label>
-                <label><input type="radio" name="anova-group" value="2"> Group 3</label>
-              </div>
-              <button id="anova-clear" class="ghost">Clear groups</button>
-            </div>
-            <div class="hint small">Choose a group, then click the canvas to add observations. Drag to adjust and right-click to remove samples. Provide at least two non-empty groups.</div>
-            <button id="compute-anova" class="primary">Compute</button>
-            <div class="formula" id="anova-formula"></div>
-            <div class="formula" id="anova-ms-formula"></div>
-            <div class="values-grid stats-values">
-              <div class="value-box"><strong>k</strong><div id="anova-k">—</div></div>
-              <div class="value-box"><strong>N</strong><div id="anova-n">—</div></div>
-              <div class="value-box"><strong>SS<sub>B</sub></strong><div id="anova-ssb">—</div></div>
-              <div class="value-box"><strong>SS<sub>W</sub></strong><div id="anova-ssw">—</div></div>
-              <div class="value-box"><strong>MS<sub>B</sub></strong><div id="anova-msb">—</div></div>
-              <div class="value-box"><strong>MS<sub>W</sub></strong><div id="anova-msw">—</div></div>
-              <div class="value-box"><strong>F</strong><div id="anova-f">—</div></div>
-              <div class="value-box"><strong>df₁</strong><div id="anova-df1">—</div></div>
-              <div class="value-box"><strong>df₂</strong><div id="anova-df2">—</div></div>
-              <div class="value-box"><strong>p</strong><div id="anova-p">—</div></div>
-            </div>
+          <h3>Data Table</h3>
+          <div class="table-container">
+            <table id="manual-table">
+              <thead>
+                <tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>x-x̄</th><th>y-ȳ</th><th>(x-x̄)²</th><th>(y-ȳ)²</th><th>(x-x̄)(y-ȳ)</th></tr>
+              </thead>
+              <tbody id="manual-body"></tbody>
+            </table>
           </div>
-          <div class="panel subtle-panel">
-            <h4>Components</h4>
-
-            <div class="calculations" id="anova-steps"></div>
-          </div>
-
         </div>
       </div>
     </div>
