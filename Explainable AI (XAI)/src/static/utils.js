@@ -1,0 +1,282 @@
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+// KaTeX rendering utilities
+const katexQueue = [];
+
+function kRender(el, tex, display = false) {
+  if (!el) return;
+  if (window.katex) {
+    window.katex.render(tex, el, {displayMode: display, throwOnError: false});
+  } else {
+    katexQueue.push([el, tex, display]);
+  }
+}
+
+function kFlush() {
+  if (!window.katex) return;
+  while (katexQueue.length) {
+    const [el, tex, display] = katexQueue.shift();
+    window.katex.render(tex, el, {displayMode: display, throwOnError: false});
+  }
+}
+
+// Math utilities
+function calculateMSE(points, m, b) {
+  if (!points.length) return 0;
+  return points.reduce((sum, p) => sum + Math.pow(p.y - (m * p.x + b), 2), 0) / points.length;
+}
+
+function calculateR2(points, m, b) {
+  const n = points.length;
+  if (!n) return 0;
+  const meanY = points.reduce((s, p) => s + p.y, 0) / n;
+  let ssRes = 0, ssTot = 0;
+  for (const p of points) {
+    const pred = m * p.x + b;
+    ssRes += Math.pow(p.y - pred, 2);
+    ssTot += Math.pow(p.y - meanY, 2);
+  }
+  return ssTot > 0 ? 1 - ssRes / ssTot : 0;
+}
+
+// Domain utilities
+const domain = {xmin: 0, xmax: 10, ymin: 0, ymax: 10};
+const margin = 50;
+
+function dataToPx(x, y, canvas) {
+  const w = canvas.width - 2 * margin, h = canvas.height - 2 * margin;
+  const px = margin + (x - domain.xmin) / (domain.xmax - domain.xmin) * w;
+  const py = margin + h - (y - domain.ymin) / (domain.ymax - domain.ymin) * h;
+  return [px, py];
+}
+
+function pxToData(px, py, canvas) {
+  const w = canvas.width - 2 * margin, h = canvas.height - 2 * margin;
+  const nx = Math.max(0, Math.min(1, (px - margin) / w));
+  const ny = Math.max(0, Math.min(1, 1 - (py - margin) / h));
+  const x = domain.xmin + nx * (domain.xmax - domain.xmin);
+  const y = domain.ymin + ny * (domain.ymax - domain.ymin);
+  return [x, y];
+}
+
+// Export for global access
+window.AppUtils = {
+  kRender, kFlush, calculateMSE, calculateR2, 
+  dataToPx, pxToData, domain, margin
+};
+
+// ============================================================================
+// CANVAS HANDLER
+// ============================================================================
+
+class CanvasHandler {
+  constructor() {
+    this.canvases = {
+      ols: document.getElementById('plot-ols'),
+      gd: document.getElementById('plot-gd'), 
+      manual: document.getElementById('plot-manual')
+    };
+    this.contexts = {};
+    Object.keys(this.canvases).forEach(key => {
+      this.contexts[key] = this.canvases[key].getContext('2d');
+    });
+    this.lossCanvas = document.getElementById('loss-plot');
+    this.lossCtx = this.lossCanvas.getContext('2d');
+    this.dragging = -1;
+    this.setupEvents();
+  }
+
+  draw(activeTab, points, models, showResiduals) {
+    const canvas = this.canvases[activeTab];
+    const ctx = this.contexts[activeTab];
+    this.drawCanvas(ctx, canvas, points, models[activeTab], showResiduals);
+    document.getElementById('point-count').textContent = points.length;
+  }
+
+  drawCanvas(ctx, canvas, points, model, showResiduals) {
+    // Clear
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid
+    this.drawGrid(ctx, canvas);
+    // Axes  
+    this.drawAxes(ctx, canvas);
+    // Fit + residuals
+    if (model.fitted) {
+      this.drawFit(ctx, canvas, model, points, showResiduals);
+    }
+    // Points
+    this.drawPoints(ctx, canvas, points);
+  }
+
+  drawGrid(ctx, canvas) {
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const x = AppUtils.margin + i * (canvas.width - 2 * AppUtils.margin) / 10;
+      const y = AppUtils.margin + i * (canvas.height - 2 * AppUtils.margin) / 10;
+      ctx.beginPath();
+      ctx.moveTo(x, AppUtils.margin); 
+      ctx.lineTo(x, canvas.height - AppUtils.margin);
+      ctx.moveTo(AppUtils.margin, y); 
+      ctx.lineTo(canvas.width - AppUtils.margin, y);
+      ctx.stroke();
+    }
+  }
+
+  drawAxes(ctx, canvas) {
+    ctx.strokeStyle = '#374151';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(AppUtils.margin, AppUtils.margin, 
+                   canvas.width - 2 * AppUtils.margin, 
+                   canvas.height - 2 * AppUtils.margin);
+
+    // Labels
+    ctx.fillStyle = '#374151';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= 10; i++) {
+      const xVal = AppUtils.domain.xmin + i;
+      const [px] = AppUtils.dataToPx(xVal, AppUtils.domain.ymin, canvas);
+      ctx.fillText(xVal.toFixed(0), px, canvas.height - AppUtils.margin + 20);
+    }
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 10; i++) {
+      const yVal = AppUtils.domain.ymin + i;
+      const [, py] = AppUtils.dataToPx(AppUtils.domain.xmin, yVal, canvas);
+      ctx.fillText(yVal.toFixed(0), AppUtils.margin - 10, py + 4);
+    }
+  }
+
+  drawFit(ctx, canvas, model, points, showResiduals) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(AppUtils.margin, AppUtils.margin, 
+             canvas.width - 2 * AppUtils.margin, 
+             canvas.height - 2 * AppUtils.margin);
+    ctx.clip();
+
+    const y1 = model.m * AppUtils.domain.xmin + model.b;
+    const y2 = model.m * AppUtils.domain.xmax + model.b;
+    const [x1, py1] = AppUtils.dataToPx(AppUtils.domain.xmin, y1, canvas);
+    const [x2, py2] = AppUtils.dataToPx(AppUtils.domain.xmax, y2, canvas);
+    
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x1, py1);
+    ctx.lineTo(x2, py2);
+    ctx.stroke();
+
+    if (showResiduals) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      for (const p of points) {
+        const pred = model.m * p.x + model.b;
+        const [px, py] = AppUtils.dataToPx(p.x, p.y, canvas);
+        const [, pyPred] = AppUtils.dataToPx(p.x, pred, canvas);
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px, pyPred);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  drawPoints(ctx, canvas, points) {
+    ctx.fillStyle = '#1f2937';
+    for (const p of points) {
+      const [px, py] = AppUtils.dataToPx(p.x, p.y, canvas);
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  drawLossPlot(lossHistory) {
+    const w = this.lossCanvas.width, h = this.lossCanvas.height;
+    this.lossCtx.fillStyle = '#fff';
+    this.lossCtx.fillRect(0, 0, w, h);
+    if (lossHistory.length < 2) return;
+
+    const marginL = 30, marginT = 20, marginR = 10, marginB = 30;
+    const minLoss = Math.min(...lossHistory);
+    const maxLoss = Math.max(...lossHistory);
+    const range = maxLoss - minLoss || 1;
+
+    this.lossCtx.strokeStyle = '#e2e8f0';
+    this.lossCtx.lineWidth = 1;
+    this.lossCtx.strokeRect(marginL, marginT, w - marginL - marginR, h - marginT - marginB);
+
+    this.lossCtx.strokeStyle = '#dc2626';
+    this.lossCtx.lineWidth = 2;
+    this.lossCtx.beginPath();
+    for (let i = 0; i < lossHistory.length; i++) {
+      const x = marginL + i * (w - marginL - marginR) / (lossHistory.length - 1);
+      const y = marginT + (1 - (lossHistory[i] - minLoss) / range) * (h - marginT - marginB);
+      if (i === 0) this.lossCtx.moveTo(x, y);
+      else this.lossCtx.lineTo(x, y);
+    }
+    this.lossCtx.stroke();
+  }
+
+  setupEvents() {
+    Object.values(this.canvases).forEach(canvas => {
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+      canvas.addEventListener('mousedown', e => this.onMouseDown(e, canvas));
+      canvas.addEventListener('mousemove', e => this.onMouseMove(e, canvas));
+      canvas.addEventListener('mouseup', () => this.dragging = -1);
+      canvas.addEventListener('mouseleave', () => this.dragging = -1);
+    });
+  }
+
+  onMouseDown(e, canvas) {
+    const [px, py] = this.getMousePos(e, canvas);
+    const idx = this.findNearestPoint(px, py, canvas);
+
+    if (e.button === 2 && idx >= 0) {
+      window.App.removePoint(idx);
+      return;
+    }
+    if (idx >= 0) {
+      this.dragging = idx;
+    } else {
+      const [x, y] = AppUtils.pxToData(px, py, canvas);
+      window.App.addPoint({x, y});
+    }
+  }
+
+  onMouseMove(e, canvas) {
+    if (this.dragging < 0) return;
+    const [px, py] = this.getMousePos(e, canvas);
+    const [x, y] = AppUtils.pxToData(px, py, canvas);
+    window.App.updatePoint(this.dragging, {x, y});
+  }
+
+  getMousePos(e, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return [(e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY];
+  }
+
+  findNearestPoint(px, py, canvas) {
+    let best = -1, bestDist = 400;
+    const points = window.App.getPoints();
+    for (let i = 0; i < points.length; i++) {
+      const [x, y] = AppUtils.dataToPx(points[i].x, points[i].y, canvas);
+      const d = (x - px) ** 2 + (y - py) ** 2;
+      if (d < bestDist) { best = i; bestDist = d; }
+    }
+    return best;
+  }
+}
+
+window.CanvasHandler = CanvasHandler;
