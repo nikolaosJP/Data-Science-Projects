@@ -14,6 +14,14 @@ class App {
       manual: {m: 0, b: 0, fitted: false}
     };
 
+    this.activeStatsTab = 'corr';
+    this.statisticsState = {
+      corr: {points: []},
+      ttest: {groups: []},
+      anova: {groups: []}
+    };
+
+
     this.canvas = new CanvasHandler();
     this.olsSolver = new OLSSolver();
     this.gradientDescent = new GradientDescent();
@@ -23,6 +31,7 @@ class App {
     this.setupEventHandlers();
     this.initializeFormulas();
     this.canvas.draw(this.activeTab, this.points, this.models, this.showResiduals);
+    this.drawStatsVisualization();
     AppUtils.kFlush();
   }
 
@@ -30,6 +39,12 @@ class App {
     document.querySelectorAll('.category-tab').forEach(tab => {
       tab.addEventListener('click', () => this.switchCategory(tab.dataset.category));
     });
+
+
+    document.querySelectorAll('.stats-tab').forEach(tab => {
+      tab.addEventListener('click', () => this.switchStatsTab(tab.dataset.statsTab));
+    });
+
 
     // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
@@ -71,8 +86,26 @@ class App {
       if (category === 'regression') {
         this.canvas.draw(this.activeTab, this.points, this.models, this.showResiduals);
         this.canvas.drawLossPlot(this.gradientDescent.lossHistory);
+
+      } else {
+        this.drawStatsVisualization();
       }
     }
+  }
+
+  switchStatsTab(tab) {
+    if (this.activeStatsTab === tab) return;
+    document.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.stats-tab-content').forEach(c => c.classList.remove('active'));
+    const tabEl = document.querySelector(`.stats-tab[data-stats-tab="${tab}"]`);
+    const content = document.getElementById(`stats-tab-${tab}`);
+    if (tabEl && content) {
+      tabEl.classList.add('active');
+      content.classList.add('active');
+      this.activeStatsTab = tab;
+      this.drawStatsVisualization();
+    }
+
   }
 
   switchTab(tab) {
@@ -178,6 +211,16 @@ class App {
     document.getElementById('next-step').disabled = true;
     document.getElementById('ols-calculations').style.display = 'none';
     document.getElementById('manual-calculations').style.display = 'none';
+    ['ols-m', 'ols-b', 'ols-r2', 'ols-mse', 'cost-value', 'grad-m-val', 'grad-b-val',
+     'new-m-val', 'new-b-val', 'final-b1', 'final-b0'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    const tablesToClear = ['pred-body', 'manual-body'];
+    tablesToClear.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
     for (let i = 0; i <= 4; i++) {
       const el = document.getElementById(`step-${i}`);
       if (el) el.style.display = 'none';
@@ -212,11 +255,37 @@ class App {
     AppUtils.kRender(document.getElementById('gd-update-formula'),
       `m\\leftarrow m-\\eta\\,\\tfrac{\\partial J}{\\partial m},\\; b\\leftarrow b-\\eta\\,\\tfrac{\\partial J}{\\partial b}`);
     AppUtils.kRender(document.getElementById('corr-formula'),
-      `r=\\frac{\\sum (x_i-\\bar{x})(y_i-\\bar{y})}{\\sqrt{\\sum (x_i-\\bar{x})^2\\sum (y_i-\\bar{y})^2}}`);
+
+      `r=\\frac{SS_{xy}}{\\sqrt{SS_{xx}SS_{yy}}}`);
+    AppUtils.kRender(document.getElementById('cov-formula'),
+      `SS_{xy}=\\sum (x_i-\\bar{x})(y_i-\\bar{y}),\\quad SS_{xx}=\\sum (x_i-\\bar{x})^2,\\quad SS_{yy}=\\sum (y_i-\\bar{y})^2`);
     AppUtils.kRender(document.getElementById('ttest-formula'),
       `t=\\frac{\\bar{x}_1-\\bar{x}_2}{\\sqrt{\\tfrac{s_1^2}{n_1}+\\tfrac{s_2^2}{n_2}}}`);
+    AppUtils.kRender(document.getElementById('ttest-df-formula'),
+      `df=\\frac{(\\tfrac{s_1^2}{n_1}+\\tfrac{s_2^2}{n_2})^2}{\\tfrac{s_1^4}{n_1^2(n_1-1)}+\\tfrac{s_2^4}{n_2^2(n_2-1)}}`);
     AppUtils.kRender(document.getElementById('anova-formula'),
       `F=\\frac{MS_B}{MS_W}=\\frac{\\tfrac{\\sum n_j(\\bar{x}_j-\\bar{x})^2}{k-1}}{\\tfrac{\\sum (x_{ij}-\\bar{x}_j)^2}{N-k}}`);
+    AppUtils.kRender(document.getElementById('anova-ms-formula'),
+      `MS_B=\\frac{SS_B}{k-1},\\quad MS_W=\\frac{SS_W}{N-k}`);
+  }
+
+  renderSteps(containerId, steps) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    steps.forEach(step => {
+      const div = document.createElement('div');
+      div.className = 'calc-step';
+      container.appendChild(div);
+      AppUtils.kRender(div, step, true);
+    });
+  }
+
+  drawStatsVisualization() {
+    if (!this.canvas || typeof this.canvas.drawStats !== 'function') return;
+    const state = this.statisticsState[this.activeStatsTab] || {};
+    this.canvas.drawStats(this.activeStatsTab, state);
+
   }
 
   computeCorrelation() {
@@ -225,8 +294,27 @@ class App {
       const ys = AppUtils.parseNumberList(document.getElementById('stats-y-input').value);
       const result = this.statisticsCalculator.correlation(xs, ys);
       document.getElementById('corr-n').textContent = result.n;
+
+      document.getElementById('corr-mean-x').textContent = AppUtils.formatNumber(result.meanX, 4);
+      document.getElementById('corr-mean-y').textContent = AppUtils.formatNumber(result.meanY, 4);
       document.getElementById('corr-cov').textContent = AppUtils.formatNumber(result.covariance);
       document.getElementById('corr-r').textContent = AppUtils.formatNumber(result.correlation);
+      this.statisticsState.corr = {
+        points: xs.map((x, i) => ({x, y: ys[i]})),
+        meanX: result.meanX,
+        meanY: result.meanY
+      };
+      this.renderSteps('corr-steps', [
+        `\\bar{x}=\\frac{1}{n}\\sum x_i=${AppUtils.formatNumber(result.meanX, 4)}`,
+        `\\bar{y}=\\frac{1}{n}\\sum y_i=${AppUtils.formatNumber(result.meanY, 4)}`,
+        `SS_{xx}=\\sum (x_i-\\bar{x})^2=${AppUtils.formatNumber(result.ssxx, 4)}`,
+        `SS_{yy}=\\sum (y_i-\\bar{y})^2=${AppUtils.formatNumber(result.ssyy, 4)}`,
+        `SS_{xy}=\\sum (x_i-\\bar{x})(y_i-\\bar{y})=${AppUtils.formatNumber(result.ssxy, 4)}`,
+        `r=\\frac{SS_{xy}}{\\sqrt{SS_{xx}SS_{yy}}}=${AppUtils.formatNumber(result.correlation, 4)}`
+      ]);
+      this.drawStatsVisualization();
+      AppUtils.kFlush();
+
     } catch (e) {
       alert(e.message);
     }
@@ -237,9 +325,33 @@ class App {
       const groupA = AppUtils.parseNumberList(document.getElementById('ttest-group-a').value);
       const groupB = AppUtils.parseNumberList(document.getElementById('ttest-group-b').value);
       const result = this.statisticsCalculator.tTest(groupA, groupB);
+
+      document.getElementById('ttest-n1').textContent = result.n1;
+      document.getElementById('ttest-n2').textContent = result.n2;
+      document.getElementById('ttest-mean-a').textContent = AppUtils.formatNumber(result.meanA, 4);
+      document.getElementById('ttest-mean-b').textContent = AppUtils.formatNumber(result.meanB, 4);
+      document.getElementById('ttest-var-a').textContent = AppUtils.formatNumber(result.varA, 4);
+      document.getElementById('ttest-var-b').textContent = AppUtils.formatNumber(result.varB, 4);
       document.getElementById('ttest-t').textContent = AppUtils.formatNumber(result.t);
       document.getElementById('ttest-df').textContent = AppUtils.formatNumber(result.df, 2);
       document.getElementById('ttest-p').textContent = AppUtils.formatNumber(result.p, 4);
+      this.statisticsState.ttest = {
+        groups: [
+          {label: 'Group A', values: groupA, mean: result.meanA},
+          {label: 'Group B', values: groupB, mean: result.meanB}
+        ]
+      };
+      this.renderSteps('ttest-steps', [
+        `\\bar{x}_1=${AppUtils.formatNumber(result.meanA, 4)},\\; s_1^2=${AppUtils.formatNumber(result.varA, 4)}`,
+        `\\bar{x}_2=${AppUtils.formatNumber(result.meanB, 4)},\\; s_2^2=${AppUtils.formatNumber(result.varB, 4)}`,
+        `SE=\\sqrt{\\tfrac{s_1^2}{n_1}+\\tfrac{s_2^2}{n_2}}=${AppUtils.formatNumber(result.se, 4)}`,
+        `t=\\frac{\\bar{x}_1-\\bar{x}_2}{SE}=${AppUtils.formatNumber(result.t, 4)}`,
+        `df=${AppUtils.formatNumber(result.df, 4)}`,
+        `p=2(1-F_t(|t|))=${AppUtils.formatNumber(result.p, 4)}`
+      ]);
+      this.drawStatsVisualization();
+      AppUtils.kFlush();
+
     } catch (e) {
       alert(e.message);
     }
@@ -247,13 +359,43 @@ class App {
 
   computeAnova() {
     try {
-      const groups = Array.from(document.querySelectorAll('.anova-group'))
+
+      const rawGroups = Array.from(document.querySelectorAll('.anova-group'))
         .map(el => AppUtils.parseNumberList(el.value));
-      const result = this.statisticsCalculator.anova(groups);
+      const result = this.statisticsCalculator.anova(rawGroups);
+
       document.getElementById('anova-f').textContent = AppUtils.formatNumber(result.f);
       document.getElementById('anova-df1').textContent = AppUtils.formatNumber(result.df1, 2);
       document.getElementById('anova-df2').textContent = AppUtils.formatNumber(result.df2, 2);
       document.getElementById('anova-p').textContent = AppUtils.formatNumber(result.p, 4);
+
+      document.getElementById('anova-k').textContent = result.k;
+      document.getElementById('anova-n').textContent = result.totalN;
+      document.getElementById('anova-ssb').textContent = AppUtils.formatNumber(result.ssBetween, 4);
+      document.getElementById('anova-ssw').textContent = AppUtils.formatNumber(result.ssWithin, 4);
+      document.getElementById('anova-msb').textContent = AppUtils.formatNumber(result.msBetween, 4);
+      document.getElementById('anova-msw').textContent = AppUtils.formatNumber(result.msWithin, 4);
+      const filtered = rawGroups
+        .map((values, idx) => ({values, idx}))
+        .filter(group => group.values.length > 0)
+        .map((group, order) => ({
+          label: `Group ${group.idx + 1}`,
+          values: group.values,
+          mean: result.means[order]
+        }));
+      this.statisticsState.anova = {groups: filtered, grandMean: result.grandMean};
+      const meanSteps = result.means.map((m, idx) => `\\bar{x}_${idx + 1}=${AppUtils.formatNumber(m, 4)}`);
+      this.renderSteps('anova-steps', [
+        ...meanSteps,
+        `\\bar{x}=\\frac{1}{N}\\sum_j n_j\\bar{x}_j=${AppUtils.formatNumber(result.grandMean, 4)}`,
+        `SS_B=\\sum_j n_j(\\bar{x}_j-\\bar{x})^2=${AppUtils.formatNumber(result.ssBetween, 4)}`,
+        `SS_W=\\sum_{j,i}(x_{ij}-\\bar{x}_j)^2=${AppUtils.formatNumber(result.ssWithin, 4)}`,
+        `MS_B=SS_B/(k-1)=${AppUtils.formatNumber(result.msBetween, 4)}`,
+        `MS_W=SS_W/(N-k)=${AppUtils.formatNumber(result.msWithin, 4)}`,
+        `F=MS_B/MS_W=${AppUtils.formatNumber(result.f, 4)}`
+      ]);
+      this.drawStatsVisualization();
+      AppUtils.kFlush();
     } catch (e) {
       alert(e.message);
     }

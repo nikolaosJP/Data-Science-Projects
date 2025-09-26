@@ -3,7 +3,9 @@
 An interactive web application designed to help students, researchers, and practitioners learn and visualize core statistical ideas from first principles. The platform now offers two categories:
 
 - **Regression** – explore Ordinary Least Squares, Gradient Descent, and manual derivations with interactive plots.
-- **Statistics** – compute correlation, covariance, Welch's t-test, and one-way ANOVA from custom numeric inputs.
+
+- **Statistics** – navigate dedicated tabs for correlation/covariance, Welch's t-test, and one-way ANOVA complete with tailored visualizations, intermediate calculations, and rendered formulas.
+
 
 This makes abstract statistical concepts easier to understand by coupling equations with interactive visualizations and concise numerical summaries.
 

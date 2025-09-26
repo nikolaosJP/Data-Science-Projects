@@ -183,64 +183,138 @@
             <div class="table-container">
               <table id="manual-table">
                 <thead>
-                  <tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>x-x̄</th><th>y-ȳ</th><th>(x-x̄)²</th><th>(y-ȳ)²</th><th>(x-x̄)(y-ȳ)</th></tr>
+
+                  <tr>
+                    <th>i</th>
+                    <th>xᵢ</th>
+                    <th>yᵢ</th>
+                    <th>x-x̄</th>
+                    <th>y-ȳ</th>
+                    <th>(x-x̄)²</th>
+                    <th>(y-ȳ)²</th>
+                    <th>(x-x̄)(y-ȳ)</th>
+                  </tr>
+
                 </thead>
                 <tbody id="manual-body"></tbody>
               </table>
             </div>
           </div>
+
         </div>
       </div>
     </div>
   </div>
 
   <div class="category-content" id="category-statistics">
-    <div class="stats-grid">
-      <div class="panel">
-        <h3>Correlation & Covariance</h3>
-        <div class="input-group">
-          <label>X Values<textarea id="stats-x-input" placeholder="1, 2, 3"></textarea></label>
-          <label>Y Values<textarea id="stats-y-input" placeholder="2, 3, 4"></textarea></label>
-          <div class="hint small">Comma or newline separated numbers with equal length.</div>
+    <div class="stats-tabs">
+      <div class="stats-tab active" data-stats-tab="corr">Correlation &amp; Covariance</div>
+      <div class="stats-tab" data-stats-tab="ttest">Welch's t-test</div>
+      <div class="stats-tab" data-stats-tab="anova">One-way ANOVA</div>
+    </div>
+
+    <div class="stats-tab-content active" id="stats-tab-corr">
+      <div class="main-grid stats-layout">
+        <div class="panel">
+          <canvas id="corr-plot" width="780" height="420"></canvas>
         </div>
-        <button id="compute-corr" class="primary">Compute</button>
-        <div class="formula" id="corr-formula"></div>
-        <div class="values-grid">
-          <div class="value-box"><strong>n</strong><div id="corr-n">—</div></div>
-          <div class="value-box"><strong>Cov</strong><div id="corr-cov">—</div></div>
-          <div class="value-box"><strong>r</strong><div id="corr-r">—</div></div>
+        <div>
+          <div class="panel">
+            <h3>Correlation &amp; Covariance</h3>
+            <div class="input-group">
+              <label>X Values<textarea id="stats-x-input" placeholder="1, 2, 3"></textarea></label>
+              <label>Y Values<textarea id="stats-y-input" placeholder="2, 3, 4"></textarea></label>
+              <div class="hint small">Comma or newline separated numbers with equal length.</div>
+            </div>
+            <button id="compute-corr" class="primary">Compute</button>
+            <div class="formula" id="corr-formula"></div>
+            <div class="formula" id="cov-formula"></div>
+            <div class="values-grid stats-values">
+              <div class="value-box"><strong>n</strong><div id="corr-n">—</div></div>
+              <div class="value-box"><strong>x̄</strong><div id="corr-mean-x">—</div></div>
+              <div class="value-box"><strong>ȳ</strong><div id="corr-mean-y">—</div></div>
+              <div class="value-box"><strong>Cov</strong><div id="corr-cov">—</div></div>
+              <div class="value-box"><strong>r</strong><div id="corr-r">—</div></div>
+            </div>
+          </div>
+          <div class="panel subtle-panel">
+            <h4>Components</h4>
+            <div class="calculations" id="corr-steps"></div>
+          </div>
+
+
+
+    <div class="stats-tab-content" id="stats-tab-ttest">
+      <div class="main-grid stats-layout">
+        <div class="panel">
+          <canvas id="ttest-plot" width="780" height="420"></canvas>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>Welch's t-test</h3>
+            <div class="input-group">
+              <label>Group A<textarea id="ttest-group-a" placeholder="5, 6, 7"></textarea></label>
+              <label>Group B<textarea id="ttest-group-b" placeholder="4, 8, 6"></textarea></label>
+              <div class="hint small">Two independent samples with at least two values each.</div>
+            </div>
+            <button id="compute-ttest" class="primary">Compute</button>
+            <div class="formula" id="ttest-formula"></div>
+            <div class="formula" id="ttest-df-formula"></div>
+            <div class="values-grid stats-values">
+              <div class="value-box"><strong>n₁</strong><div id="ttest-n1">—</div></div>
+              <div class="value-box"><strong>n₂</strong><div id="ttest-n2">—</div></div>
+              <div class="value-box"><strong>ȳ₁</strong><div id="ttest-mean-a">—</div></div>
+              <div class="value-box"><strong>ȳ₂</strong><div id="ttest-mean-b">—</div></div>
+              <div class="value-box"><strong>s₁²</strong><div id="ttest-var-a">—</div></div>
+              <div class="value-box"><strong>s₂²</strong><div id="ttest-var-b">—</div></div>
+              <div class="value-box"><strong>t</strong><div id="ttest-t">—</div></div>
+              <div class="value-box"><strong>df</strong><div id="ttest-df">—</div></div>
+              <div class="value-box"><strong>p (two-tailed)</strong><div id="ttest-p">—</div></div>
+            </div>
+          </div>
+          <div class="panel subtle-panel">
+            <h4>Components</h4>
+            <div class="calculations" id="ttest-steps"></div>
+          </div>
         </div>
       </div>
-      <div class="panel">
-        <h3>Welch's t-test</h3>
-        <div class="input-group">
-          <label>Group A<textarea id="ttest-group-a" placeholder="5, 6, 7"></textarea></label>
-          <label>Group B<textarea id="ttest-group-b" placeholder="4, 8, 6"></textarea></label>
-          <div class="hint small">Two independent samples with at least two values each.</div>
+    </div>
+
+    <div class="stats-tab-content" id="stats-tab-anova">
+      <div class="main-grid stats-layout">
+        <div class="panel">
+          <canvas id="anova-plot" width="780" height="420"></canvas>
         </div>
-        <button id="compute-ttest" class="primary">Compute</button>
-        <div class="formula" id="ttest-formula"></div>
-        <div class="values-grid">
-          <div class="value-box"><strong>t</strong><div id="ttest-t">—</div></div>
-          <div class="value-box"><strong>df</strong><div id="ttest-df">—</div></div>
-          <div class="value-box"><strong>p (two-tailed)</strong><div id="ttest-p">—</div></div>
-        </div>
-      </div>
-      <div class="panel">
-        <h3>One-way ANOVA</h3>
-        <div class="anova-inputs">
-          <label>Group 1<textarea class="anova-group" placeholder="10, 11, 9"></textarea></label>
-          <label>Group 2<textarea class="anova-group" placeholder="12, 13, 11"></textarea></label>
-          <label>Group 3<textarea class="anova-group" placeholder="8, 9, 10"></textarea></label>
-        </div>
-        <div class="hint small">Provide at least two groups. Empty groups are ignored.</div>
-        <button id="compute-anova" class="primary">Compute</button>
-        <div class="formula" id="anova-formula"></div>
-        <div class="values-grid">
-          <div class="value-box"><strong>F</strong><div id="anova-f">—</div></div>
-          <div class="value-box"><strong>df₁</strong><div id="anova-df1">—</div></div>
-          <div class="value-box"><strong>df₂</strong><div id="anova-df2">—</div></div>
-          <div class="value-box"><strong>p</strong><div id="anova-p">—</div></div>
+        <div>
+          <div class="panel">
+            <h3>One-way ANOVA</h3>
+            <div class="anova-inputs">
+              <label>Group 1<textarea class="anova-group" placeholder="10, 11, 9"></textarea></label>
+              <label>Group 2<textarea class="anova-group" placeholder="12, 13, 11"></textarea></label>
+              <label>Group 3<textarea class="anova-group" placeholder="8, 9, 10"></textarea></label>
+            </div>
+            <div class="hint small">Provide at least two groups. Empty groups are ignored.</div>
+            <button id="compute-anova" class="primary">Compute</button>
+            <div class="formula" id="anova-formula"></div>
+            <div class="formula" id="anova-ms-formula"></div>
+            <div class="values-grid stats-values">
+              <div class="value-box"><strong>k</strong><div id="anova-k">—</div></div>
+              <div class="value-box"><strong>N</strong><div id="anova-n">—</div></div>
+              <div class="value-box"><strong>SS<sub>B</sub></strong><div id="anova-ssb">—</div></div>
+              <div class="value-box"><strong>SS<sub>W</sub></strong><div id="anova-ssw">—</div></div>
+              <div class="value-box"><strong>MS<sub>B</sub></strong><div id="anova-msb">—</div></div>
+              <div class="value-box"><strong>MS<sub>W</sub></strong><div id="anova-msw">—</div></div>
+              <div class="value-box"><strong>F</strong><div id="anova-f">—</div></div>
+              <div class="value-box"><strong>df₁</strong><div id="anova-df1">—</div></div>
+              <div class="value-box"><strong>df₂</strong><div id="anova-df2">—</div></div>
+              <div class="value-box"><strong>p</strong><div id="anova-p">—</div></div>
+            </div>
+          </div>
+          <div class="panel subtle-panel">
+            <h4>Components</h4>
+            <div class="calculations" id="anova-steps"></div>
+          </div>
+
         </div>
       </div>
     </div>

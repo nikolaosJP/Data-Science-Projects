@@ -404,13 +404,31 @@ class StatisticsCalculator {
 
   correlation(xs, ys) {
     const cov = this.covariance(xs, ys);
-    const varX = this.variance(xs);
-    const varY = this.variance(ys);
+
+    const meanX = this.mean(xs);
+    const meanY = this.mean(ys);
+    const ssxx = xs.reduce((s, x) => s + (x - meanX) ** 2, 0);
+    const ssyy = ys.reduce((s, y) => s + (y - meanY) ** 2, 0);
+    const ssxy = xs.reduce((s, x, i) => s + (x - meanX) * (ys[i] - meanY), 0);
+    const varX = ssxx / (xs.length - 1);
+    const varY = ssyy / (ys.length - 1);
+
     if (varX <= 0 || varY <= 0) {
       throw new Error('Variance is zero; correlation undefined.');
     }
     const corr = cov / Math.sqrt(varX * varY);
-    return {n: xs.length, covariance: cov, correlation: corr};
+
+    return {
+      n: xs.length,
+      covariance: cov,
+      correlation: corr,
+      meanX,
+      meanY,
+      ssxx,
+      ssyy,
+      ssxy
+    };
+
   }
 
   tTest(groupA, groupB) {
@@ -432,7 +450,20 @@ class StatisticsCalculator {
       (varB ** 2) / (groupB.length ** 2 * (groupB.length - 1));
     const df = numerator / denominator;
     const p = this.twoTailedPValue(t, df);
-    return {t, df, p};
+
+    return {
+      t,
+      df,
+      p,
+      meanA,
+      meanB,
+      varA,
+      varB,
+      se,
+      n1: groupA.length,
+      n2: groupB.length
+    };
+
   }
 
   anova(groups) {
@@ -463,7 +494,22 @@ class StatisticsCalculator {
     const msWithin = ssWithin / dfWithin;
     const f = msWithin === 0 ? Infinity : msBetween / msWithin;
     const p = msWithin === 0 ? 0 : this.fTailProbability(f, dfBetween, dfWithin);
-    return {f, df1: dfBetween, df2: dfWithin, p};
+
+    return {
+      f,
+      df1: dfBetween,
+      df2: dfWithin,
+      p,
+      means,
+      grandMean,
+      ssBetween,
+      ssWithin,
+      msBetween,
+      msWithin,
+      totalN,
+      k: filtered.length
+    };
+
   }
 
   logGamma(z) {

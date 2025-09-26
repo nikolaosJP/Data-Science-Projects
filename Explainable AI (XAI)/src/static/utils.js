@@ -89,7 +89,7 @@ class CanvasHandler {
   constructor() {
     this.canvases = {
       ols: document.getElementById('plot-ols'),
-      gd: document.getElementById('plot-gd'), 
+      gd: document.getElementById('plot-gd'),
       manual: document.getElementById('plot-manual')
     };
     this.contexts = {};
@@ -98,6 +98,18 @@ class CanvasHandler {
     });
     this.lossCanvas = document.getElementById('loss-plot');
     this.lossCtx = this.lossCanvas.getContext('2d');
+    this.statsCanvases = {
+      corr: document.getElementById('corr-plot'),
+      ttest: document.getElementById('ttest-plot'),
+      anova: document.getElementById('anova-plot')
+    };
+    this.statsContexts = {};
+    Object.keys(this.statsCanvases).forEach(key => {
+      const canvas = this.statsCanvases[key];
+      if (canvas) {
+        this.statsContexts[key] = canvas.getContext('2d');
+      }
+    });
     this.dragging = -1;
     this.setupEvents();
   }
@@ -124,6 +136,215 @@ class CanvasHandler {
     }
     // Points
     this.drawPoints(ctx, canvas, points);
+  }
+
+  drawStats(tab, state = {}) {
+    const canvas = this.statsCanvases[tab];
+    const ctx = this.statsContexts[tab];
+    if (!canvas || !ctx) return;
+    switch (tab) {
+      case 'corr':
+        this.drawScatterPlot(ctx, canvas, state.points || [], state.meanX, state.meanY);
+        break;
+      case 'ttest':
+        this.drawGroupedDotPlot(ctx, canvas, state.groups || []);
+        break;
+      case 'anova':
+        this.drawGroupedDotPlot(ctx, canvas, state.groups || [], state.grandMean);
+        break;
+    }
+  }
+
+  drawScatterPlot(ctx, canvas, points, meanX, meanY) {
+    this.clearStatsCanvas(ctx, canvas);
+    if (!points.length) {
+      this.drawStatsPlaceholder(ctx, canvas, 'Add paired samples to view the scatter plot');
+      return;
+    }
+
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    let minX = Math.min(...xs), maxX = Math.max(...xs);
+    let minY = Math.min(...ys), maxY = Math.max(...ys);
+    const padX = (maxX - minX) * 0.1 || 1;
+    const padY = (maxY - minY) * 0.1 || 1;
+    minX -= padX; maxX += padX;
+    minY -= padY; maxY += padY;
+
+    const marginX = 60;
+    const marginY = 50;
+    const innerW = canvas.width - marginX * 2;
+    const innerH = canvas.height - marginY * 2;
+
+    const toPx = (x, y) => {
+      const px = marginX + ((x - minX) / (maxX - minX)) * innerW;
+      const py = marginY + innerH - ((y - minY) / (maxY - minY)) * innerH;
+      return [px, py];
+    };
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    const ticks = 5;
+    for (let i = 0; i <= ticks; i++) {
+      const tx = minX + (i / ticks) * (maxX - minX);
+      const ty = minY + (i / ticks) * (maxY - minY);
+      const [px] = toPx(tx, minY);
+      const [, py] = toPx(minX, ty);
+      ctx.beginPath();
+      ctx.moveTo(px, marginY);
+      ctx.lineTo(px, canvas.height - marginY);
+      ctx.moveTo(marginX, py);
+      ctx.lineTo(canvas.width - marginX, py);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(marginX, marginY, innerW, innerH);
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= ticks; i++) {
+      const tx = minX + (i / ticks) * (maxX - minX);
+      const [px] = toPx(tx, minY);
+      ctx.fillText(AppUtils.formatNumber(tx, 2), px, canvas.height - marginY + 18);
+    }
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= ticks; i++) {
+      const ty = minY + (i / ticks) * (maxY - minY);
+      const [, py] = toPx(minX, ty);
+      ctx.fillText(AppUtils.formatNumber(ty, 2), marginX - 8, py + 4);
+    }
+
+    ctx.fillStyle = '#2563eb';
+    points.forEach(pt => {
+      const [px, py] = toPx(pt.x, pt.y);
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    if (Number.isFinite(meanX)) {
+      const [mx1] = toPx(meanX, minY);
+      ctx.strokeStyle = '#fb7185';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(mx1, marginY);
+      ctx.lineTo(mx1, canvas.height - marginY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (Number.isFinite(meanY)) {
+      const [, my] = toPx(minX, meanY);
+      ctx.strokeStyle = '#f97316';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(marginX, my);
+      ctx.lineTo(canvas.width - marginX, my);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  drawGroupedDotPlot(ctx, canvas, groups, grandMean) {
+    this.clearStatsCanvas(ctx, canvas);
+    const nonEmpty = (groups || []).filter(g => g.values && g.values.length);
+    if (!nonEmpty.length) {
+      this.drawStatsPlaceholder(ctx, canvas, 'Add group samples to compare distributions');
+      return;
+    }
+
+    const values = nonEmpty.flatMap(g => g.values);
+    let minY = Math.min(...values);
+    let maxY = Math.max(...values);
+    const pad = (maxY - minY) * 0.1 || 1;
+    minY -= pad;
+    maxY += pad;
+
+    const left = 80;
+    const right = 40;
+    const top = 40;
+    const bottom = 70;
+    const innerW = canvas.width - left - right;
+    const innerH = canvas.height - top - bottom;
+    const toPy = value => top + innerH - ((value - minY) / (maxY - minY)) * innerH;
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    const ticks = 5;
+    for (let i = 0; i <= ticks; i++) {
+      const ty = minY + (i / ticks) * (maxY - minY);
+      const py = toPy(ty);
+      ctx.beginPath();
+      ctx.moveTo(left, py);
+      ctx.lineTo(canvas.width - right, py);
+      ctx.stroke();
+    }
+
+    if (Number.isFinite(grandMean)) {
+      const py = toPy(grandMean);
+      ctx.strokeStyle = '#0ea5e9';
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(left, py);
+      ctx.lineTo(canvas.width - right, py);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(left, top, innerW, innerH);
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= ticks; i++) {
+      const ty = minY + (i / ticks) * (maxY - minY);
+      const py = toPy(ty);
+      ctx.fillText(AppUtils.formatNumber(ty, 2), left - 8, py + 4);
+    }
+
+    const step = innerW / (nonEmpty.length + 1);
+    nonEmpty.forEach((group, idx) => {
+      const cx = left + step * (idx + 1);
+      group.values.forEach((value, i) => {
+        const py = toPy(value);
+        const offset = ((i % 5) - 2) * 6;
+        ctx.fillStyle = '#6366f1';
+        ctx.beginPath();
+        ctx.arc(cx + offset, py, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      if (Number.isFinite(group.mean)) {
+        const py = toPy(group.mean);
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx - 30, py);
+        ctx.lineTo(cx + 30, py);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#334155';
+      ctx.textAlign = 'center';
+      ctx.fillText(group.label || `Group ${idx + 1}`, cx, canvas.height - bottom + 28);
+    });
+  }
+
+  clearStatsCanvas(ctx, canvas) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  drawStatsPlaceholder(ctx, canvas, message) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(message, canvas.width / 2, canvas.height / 2);
   }
 
   drawGrid(ctx, canvas) {
