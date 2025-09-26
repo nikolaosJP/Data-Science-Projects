@@ -41,6 +41,19 @@ function calculateR2(points, m, b) {
   return ssTot > 0 ? 1 - ssRes / ssTot : 0;
 }
 
+function parseNumberList(text) {
+  if (!text) return [];
+  return text
+    .split(/[\s,;]+/)
+    .map(v => parseFloat(v))
+    .filter(v => Number.isFinite(v));
+}
+
+function formatNumber(value, digits = 4) {
+  if (!Number.isFinite(value)) return '—';
+  return parseFloat(value.toFixed(digits)).toString();
+}
+
 // Domain utilities
 const domain = {xmin: 0, xmax: 10, ymin: 0, ymax: 10};
 const margin = 50;
@@ -63,8 +76,9 @@ function pxToData(px, py, canvas) {
 
 // Export for global access
 window.AppUtils = {
-  kRender, kFlush, calculateMSE, calculateR2, 
-  dataToPx, pxToData, domain, margin
+  kRender, kFlush, calculateMSE, calculateR2,
+  dataToPx, pxToData, domain, margin,
+  parseNumberList, formatNumber
 };
 
 // ============================================================================
