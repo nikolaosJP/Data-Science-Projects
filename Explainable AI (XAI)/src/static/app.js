@@ -20,9 +20,16 @@ class App {
       ttest: {groups: []},
       anova: {groups: []}
     };
+    this.statsData = {
+      corr: [],
+      ttest: [[], []],
+      anova: [[], [], []]
+    };
+    this.activeTTestGroup = 0;
+    this.activeAnovaGroup = 0;
 
+    this.canvas = new CanvasHandler(this);
 
-    this.canvas = new CanvasHandler();
     this.olsSolver = new OLSSolver();
     this.gradientDescent = new GradientDescent();
     this.manualCalculator = new ManualCalculator();
@@ -30,6 +37,7 @@ class App {
 
     this.setupEventHandlers();
     this.initializeFormulas();
+    this.refreshStatsVisualState();
     this.canvas.draw(this.activeTab, this.points, this.models, this.showResiduals);
     this.drawStatsVisualization();
     AppUtils.kFlush();
@@ -71,6 +79,26 @@ class App {
     if (ttestBtn) ttestBtn.onclick = () => this.computeTTest();
     const anovaBtn = document.getElementById('compute-anova');
     if (anovaBtn) anovaBtn.onclick = () => this.computeAnova();
+
+    const corrClear = document.getElementById('corr-clear');
+    if (corrClear) corrClear.onclick = () => this.clearStatsData('corr');
+
+    document.querySelectorAll('input[name="ttest-group"]').forEach(radio => {
+      radio.addEventListener('change', e => {
+        this.activeTTestGroup = parseInt(e.target.value, 10) || 0;
+      });
+    });
+    const ttestClear = document.getElementById('ttest-clear');
+    if (ttestClear) ttestClear.onclick = () => this.clearStatsData('ttest');
+
+    document.querySelectorAll('input[name="anova-group"]').forEach(radio => {
+      radio.addEventListener('change', e => {
+        this.activeAnovaGroup = parseInt(e.target.value, 10) || 0;
+      });
+    });
+    const anovaClear = document.getElementById('anova-clear');
+    if (anovaClear) anovaClear.onclick = () => this.clearStatsData('anova');
+
   }
 
   switchCategory(category) {
@@ -137,6 +165,143 @@ class App {
   }
 
   getPoints() { return this.points; }
+
+  getStatsDataset(tab) {
+    switch (tab) {
+      case 'corr':
+        return this.statsData.corr;
+      case 'ttest':
+        return this.statsData.ttest;
+      case 'anova':
+        return this.statsData.anova;
+      default:
+        return [];
+    }
+  }
+
+  addStatsPoint(tab, data) {
+    if (tab === 'corr') {
+      if (!data) return;
+      this.statsData.corr.push({x: data.x, y: data.y});
+      this.resetStatsOutputs('corr');
+    } else if (tab === 'ttest') {
+      const group = Math.max(0, Math.min(this.statsData.ttest.length - 1, this.activeTTestGroup));
+      if (!Number.isFinite(data.value)) return;
+      this.statsData.ttest[group].push(data.value);
+      this.resetStatsOutputs('ttest');
+    } else if (tab === 'anova') {
+      const group = Math.max(0, Math.min(this.statsData.anova.length - 1, this.activeAnovaGroup));
+      if (!Number.isFinite(data.value)) return;
+      this.statsData.anova[group].push(data.value);
+      this.resetStatsOutputs('anova');
+    }
+    this.refreshStatsVisualState();
+    this.drawStatsVisualization();
+  }
+
+  updateStatsPoint(tab, ref, data) {
+    if (!ref) return;
+    if (tab === 'corr') {
+      if (ref.index < 0 || ref.index >= this.statsData.corr.length) return;
+      this.statsData.corr[ref.index] = {x: data.x, y: data.y};
+      this.resetStatsOutputs('corr');
+    } else {
+      const groups = tab === 'ttest' ? this.statsData.ttest : this.statsData.anova;
+      if (!groups[ref.group] || ref.index < 0 || ref.index >= groups[ref.group].length) return;
+      if (!Number.isFinite(data.value)) return;
+      groups[ref.group][ref.index] = data.value;
+      this.resetStatsOutputs(tab);
+    }
+    this.refreshStatsVisualState();
+    this.drawStatsVisualization();
+  }
+
+  removeStatsPoint(tab, ref) {
+    if (!ref) return;
+    if (tab === 'corr') {
+      if (ref.index < 0 || ref.index >= this.statsData.corr.length) return;
+      this.statsData.corr.splice(ref.index, 1);
+      this.resetStatsOutputs('corr');
+    } else {
+      const groups = tab === 'ttest' ? this.statsData.ttest : this.statsData.anova;
+      if (!groups[ref.group] || ref.index < 0 || ref.index >= groups[ref.group].length) return;
+      groups[ref.group].splice(ref.index, 1);
+      this.resetStatsOutputs(tab);
+    }
+    this.refreshStatsVisualState();
+    this.drawStatsVisualization();
+  }
+
+  refreshStatsVisualState() {
+    const corrPoints = this.statsData.corr.map(pt => ({x: pt.x, y: pt.y}));
+    const xs = corrPoints.map(p => p.x);
+    const ys = corrPoints.map(p => p.y);
+    this.statisticsState.corr = {
+      points: corrPoints,
+      meanX: xs.length ? this.statisticsCalculator.mean(xs) : undefined,
+      meanY: ys.length ? this.statisticsCalculator.mean(ys) : undefined
+    };
+
+    const tGroups = this.statsData.ttest.map((values, idx) => ({
+      label: idx === 0 ? 'Group A' : 'Group B',
+      values: values.slice(),
+      mean: values.length ? this.statisticsCalculator.mean(values) : undefined
+    }));
+    const tAll = this.statsData.ttest.flat();
+    this.statisticsState.ttest = {
+      groups: tGroups,
+      grandMean: tAll.length ? this.statisticsCalculator.mean(tAll) : undefined
+    };
+
+    const aGroups = this.statsData.anova.map((values, idx) => ({
+      label: `Group ${idx + 1}`,
+      values: values.slice(),
+      mean: values.length ? this.statisticsCalculator.mean(values) : undefined
+    }));
+    const aAll = this.statsData.anova.flat();
+    this.statisticsState.anova = {
+      groups: aGroups,
+      grandMean: aAll.length ? this.statisticsCalculator.mean(aAll) : undefined
+    };
+  }
+
+  resetStatsOutputs(tab) {
+    const resetMap = {
+      corr: {
+        ids: ['corr-n', 'corr-mean-x', 'corr-mean-y', 'corr-cov', 'corr-r'],
+        container: 'corr-steps'
+      },
+      ttest: {
+        ids: ['ttest-n1', 'ttest-n2', 'ttest-mean-a', 'ttest-mean-b', 'ttest-var-a', 'ttest-var-b', 'ttest-t', 'ttest-df', 'ttest-p'],
+        container: 'ttest-steps'
+      },
+      anova: {
+        ids: ['anova-k', 'anova-n', 'anova-ssb', 'anova-ssw', 'anova-msb', 'anova-msw', 'anova-f', 'anova-df1', 'anova-df2', 'anova-p'],
+        container: 'anova-steps'
+      }
+    };
+    const info = resetMap[tab];
+    if (!info) return;
+    info.ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    const container = document.getElementById(info.container);
+    if (container) container.innerHTML = '';
+  }
+
+  clearStatsData(tab) {
+    if (tab === 'corr') {
+      this.statsData.corr = [];
+    } else if (tab === 'ttest') {
+      this.statsData.ttest = [[], []];
+    } else if (tab === 'anova') {
+      this.statsData.anova = [[], [], []];
+    }
+    this.resetStatsOutputs(tab);
+    this.refreshStatsVisualState();
+    this.drawStatsVisualization();
+  }
 
   solveOLS() {
     try {
@@ -290,8 +455,12 @@ class App {
 
   computeCorrelation() {
     try {
-      const xs = AppUtils.parseNumberList(document.getElementById('stats-x-input').value);
-      const ys = AppUtils.parseNumberList(document.getElementById('stats-y-input').value);
+      const points = this.statsData.corr;
+      if (points.length < 2) {
+        throw new Error('Add at least two paired samples.');
+      }
+      const xs = points.map(p => p.x);
+      const ys = points.map(p => p.y);
       const result = this.statisticsCalculator.correlation(xs, ys);
       document.getElementById('corr-n').textContent = result.n;
 
@@ -300,7 +469,8 @@ class App {
       document.getElementById('corr-cov').textContent = AppUtils.formatNumber(result.covariance);
       document.getElementById('corr-r').textContent = AppUtils.formatNumber(result.correlation);
       this.statisticsState.corr = {
-        points: xs.map((x, i) => ({x, y: ys[i]})),
+        points: points.map(p => ({x: p.x, y: p.y})),
+
         meanX: result.meanX,
         meanY: result.meanY
       };
@@ -322,8 +492,8 @@ class App {
 
   computeTTest() {
     try {
-      const groupA = AppUtils.parseNumberList(document.getElementById('ttest-group-a').value);
-      const groupB = AppUtils.parseNumberList(document.getElementById('ttest-group-b').value);
+      const groupA = this.statsData.ttest[0];
+      const groupB = this.statsData.ttest[1];
       const result = this.statisticsCalculator.tTest(groupA, groupB);
 
       document.getElementById('ttest-n1').textContent = result.n1;
@@ -335,11 +505,15 @@ class App {
       document.getElementById('ttest-t').textContent = AppUtils.formatNumber(result.t);
       document.getElementById('ttest-df').textContent = AppUtils.formatNumber(result.df, 2);
       document.getElementById('ttest-p').textContent = AppUtils.formatNumber(result.p, 4);
+      const combined = [...groupA, ...groupB];
+      const grandMean = combined.length ? this.statisticsCalculator.mean(combined) : undefined;
       this.statisticsState.ttest = {
         groups: [
-          {label: 'Group A', values: groupA, mean: result.meanA},
-          {label: 'Group B', values: groupB, mean: result.meanB}
-        ]
+          {label: 'Group A', values: groupA.slice(), mean: result.meanA},
+          {label: 'Group B', values: groupB.slice(), mean: result.meanB}
+        ],
+        grandMean
+
       };
       this.renderSteps('ttest-steps', [
         `\\bar{x}_1=${AppUtils.formatNumber(result.meanA, 4)},\\; s_1^2=${AppUtils.formatNumber(result.varA, 4)}`,
@@ -359,9 +533,7 @@ class App {
 
   computeAnova() {
     try {
-
-      const rawGroups = Array.from(document.querySelectorAll('.anova-group'))
-        .map(el => AppUtils.parseNumberList(el.value));
+      const rawGroups = this.statsData.anova.map(group => group.slice());
       const result = this.statisticsCalculator.anova(rawGroups);
 
       document.getElementById('anova-f').textContent = AppUtils.formatNumber(result.f);
@@ -375,15 +547,20 @@ class App {
       document.getElementById('anova-ssw').textContent = AppUtils.formatNumber(result.ssWithin, 4);
       document.getElementById('anova-msb').textContent = AppUtils.formatNumber(result.msBetween, 4);
       document.getElementById('anova-msw').textContent = AppUtils.formatNumber(result.msWithin, 4);
-      const filtered = rawGroups
-        .map((values, idx) => ({values, idx}))
-        .filter(group => group.values.length > 0)
-        .map((group, order) => ({
-          label: `Group ${group.idx + 1}`,
-          values: group.values,
-          mean: result.means[order]
-        }));
-      this.statisticsState.anova = {groups: filtered, grandMean: result.grandMean};
+      let meanIndex = 0;
+      const groupsForState = rawGroups.map((values, idx) => {
+        let mean = undefined;
+        if (values.length) {
+          mean = result.means[meanIndex++];
+        }
+        return {
+          label: `Group ${idx + 1}`,
+          values,
+          mean
+        };
+      });
+      this.statisticsState.anova = {groups: groupsForState, grandMean: result.grandMean};
+
       const meanSteps = result.means.map((m, idx) => `\\bar{x}_${idx + 1}=${AppUtils.formatNumber(m, 4)}`);
       this.renderSteps('anova-steps', [
         ...meanSteps,

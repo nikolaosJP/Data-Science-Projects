@@ -86,7 +86,8 @@ window.AppUtils = {
 // ============================================================================
 
 class CanvasHandler {
-  constructor() {
+  constructor(app) {
+    this.app = app;
     this.canvases = {
       ols: document.getElementById('plot-ols'),
       gd: document.getElementById('plot-gd'),
@@ -111,7 +112,10 @@ class CanvasHandler {
       }
     });
     this.dragging = -1;
+    this.statsDragging = {tab: null, group: -1, index: -1};
+    this.statsScales = {};
     this.setupEvents();
+    this.setupStatsEvents();
   }
 
   draw(activeTab, points, models, showResiduals) {
@@ -147,10 +151,11 @@ class CanvasHandler {
         this.drawScatterPlot(ctx, canvas, state.points || [], state.meanX, state.meanY);
         break;
       case 'ttest':
-        this.drawGroupedDotPlot(ctx, canvas, state.groups || []);
+        this.drawGroupedDotPlot('ttest', ctx, canvas, state.groups || [], state.grandMean);
         break;
       case 'anova':
-        this.drawGroupedDotPlot(ctx, canvas, state.groups || [], state.grandMean);
+        this.drawGroupedDotPlot('anova', ctx, canvas, state.groups || [], state.grandMean);
+
         break;
     }
   }
@@ -159,6 +164,18 @@ class CanvasHandler {
     this.clearStatsCanvas(ctx, canvas);
     if (!points.length) {
       this.drawStatsPlaceholder(ctx, canvas, 'Add paired samples to view the scatter plot');
+      const marginX = 60;
+      const marginY = 50;
+      this.statsScales.corr = {
+        minX: 0,
+        maxX: 10,
+        minY: 0,
+        maxY: 10,
+        marginX,
+        marginY,
+        innerW: canvas.width - marginX * 2,
+        innerH: canvas.height - marginY * 2
+      };
       return;
     }
 
@@ -246,22 +263,20 @@ class CanvasHandler {
       ctx.stroke();
       ctx.setLineDash([]);
     }
+
+    this.statsScales.corr = {
+      minX, maxX, minY, maxY,
+      marginX, marginY,
+      innerW, innerH
+    };
   }
 
-  drawGroupedDotPlot(ctx, canvas, groups, grandMean) {
+  drawGroupedDotPlot(tabKey, ctx, canvas, groups, grandMean) {
     this.clearStatsCanvas(ctx, canvas);
-    const nonEmpty = (groups || []).filter(g => g.values && g.values.length);
-    if (!nonEmpty.length) {
-      this.drawStatsPlaceholder(ctx, canvas, 'Add group samples to compare distributions');
-      return;
-    }
+    const allGroups = groups || [];
+    const values = allGroups.flatMap(g => g.values || []);
+    const hasValues = values.length > 0;
 
-    const values = nonEmpty.flatMap(g => g.values);
-    let minY = Math.min(...values);
-    let maxY = Math.max(...values);
-    const pad = (maxY - minY) * 0.1 || 1;
-    minY -= pad;
-    maxY += pad;
 
     const left = 80;
     const right = 40;
@@ -269,6 +284,14 @@ class CanvasHandler {
     const bottom = 70;
     const innerW = canvas.width - left - right;
     const innerH = canvas.height - top - bottom;
+
+    let minY = hasValues ? Math.min(...values) : 0;
+    let maxY = hasValues ? Math.max(...values) : 1;
+    const pad = (maxY - minY) * 0.1 || 1;
+    minY -= pad;
+    maxY += pad;
+
+
     const toPy = value => top + innerH - ((value - minY) / (maxY - minY)) * innerH;
 
     ctx.strokeStyle = '#e2e8f0';
@@ -307,10 +330,14 @@ class CanvasHandler {
       ctx.fillText(AppUtils.formatNumber(ty, 2), left - 8, py + 4);
     }
 
-    const step = innerW / (nonEmpty.length + 1);
-    nonEmpty.forEach((group, idx) => {
-      const cx = left + step * (idx + 1);
-      group.values.forEach((value, i) => {
+    const totalGroups = allGroups.length || (tabKey === 'ttest' ? 2 : 3);
+    const step = innerW / (totalGroups + 1);
+    const centers = Array.from({length: totalGroups}, (_, idx) => left + step * (idx + 1));
+
+    allGroups.forEach((group, idx) => {
+      const cx = centers[idx];
+      (group.values || []).forEach((value, i) => {
+
         const py = toPy(value);
         const offset = ((i % 5) - 2) * 6;
         ctx.fillStyle = '#6366f1';
@@ -333,6 +360,18 @@ class CanvasHandler {
       ctx.textAlign = 'center';
       ctx.fillText(group.label || `Group ${idx + 1}`, cx, canvas.height - bottom + 28);
     });
+
+    if (!hasValues) {
+      this.drawStatsPlaceholder(ctx, canvas, 'Add group samples to compare distributions');
+    }
+
+    this.statsScales[tabKey] = {
+      minY, maxY,
+      left, right, top, bottom,
+      innerW, innerH,
+      centers
+    };
+
   }
 
   clearStatsCanvas(ctx, canvas) {
@@ -511,6 +550,126 @@ class CanvasHandler {
       if (d < bestDist) { best = i; bestDist = d; }
     }
     return best;
+  }
+
+  setupStatsEvents() {
+    Object.entries(this.statsCanvases).forEach(([key, canvas]) => {
+      if (!canvas) return;
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+      canvas.addEventListener('mousedown', e => this.onStatsMouseDown(e, key, canvas));
+      canvas.addEventListener('mousemove', e => this.onStatsMouseMove(e, key, canvas));
+      canvas.addEventListener('mouseup', () => this.statsDragging = {tab: null, group: -1, index: -1});
+      canvas.addEventListener('mouseleave', () => this.statsDragging = {tab: null, group: -1, index: -1});
+    });
+  }
+
+  onStatsMouseDown(e, key, canvas) {
+    if (this.app.activeStatsTab !== key) return;
+    const [px, py] = this.getMousePos(e, canvas);
+    const hit = this.findNearestStatsPoint(key, px, py, canvas);
+
+    if (e.button === 2) {
+      if (hit) {
+        this.app.removeStatsPoint(key, hit);
+      }
+      return;
+    }
+
+    if (hit) {
+      this.statsDragging = {tab: key, group: hit.group, index: hit.index};
+    } else {
+      const data = this.statsPxToData(key, px, py, canvas);
+      if (!data) return;
+      this.app.addStatsPoint(key, data);
+    }
+  }
+
+  onStatsMouseMove(e, key, canvas) {
+    if (this.statsDragging.tab !== key) return;
+    const [px, py] = this.getMousePos(e, canvas);
+    const data = this.statsPxToData(key, px, py, canvas);
+    if (!data) return;
+    this.app.updateStatsPoint(key, this.statsDragging, data);
+  }
+
+  findNearestStatsPoint(tab, px, py, canvas) {
+    if (tab === 'corr') {
+      const scale = this.statsScales.corr;
+      if (!scale) return null;
+      const points = this.app.getStatsDataset('corr');
+      let best = null;
+      let bestDist = 400;
+      points.forEach((pt, idx) => {
+        const [x, y] = this.corrPointToPx(pt, canvas, scale);
+        const d = (x - px) ** 2 + (y - py) ** 2;
+        if (d < bestDist) {
+          bestDist = d;
+          best = {group: 0, index: idx};
+        }
+      });
+      return bestDist < 400 ? best : null;
+    }
+
+    const scale = this.statsScales[tab];
+    if (!scale) return null;
+    const groups = this.app.getStatsDataset(tab);
+    let best = null;
+    let bestDist = 400;
+    groups.forEach((values, groupIdx) => {
+      values.forEach((value, sampleIdx) => {
+        const [x, y] = this.groupPointToPx(scale, groupIdx, sampleIdx, value);
+        const d = (x - px) ** 2 + (y - py) ** 2;
+        if (d < bestDist) {
+          bestDist = d;
+          best = {group: groupIdx, index: sampleIdx};
+        }
+      });
+    });
+    return bestDist < 400 ? best : null;
+  }
+
+  corrPointToPx(point, canvas, scale) {
+    const {minX, maxX, minY, maxY, marginX, marginY, innerW, innerH} = scale;
+    const clamp = (val, lo, hi) => Math.min(hi, Math.max(lo, val));
+    const x = clamp(point.x, minX, maxX);
+    const y = clamp(point.y, minY, maxY);
+    const px = marginX + ((x - minX) / (maxX - minX)) * innerW;
+    const py = marginY + innerH - ((y - minY) / (maxY - minY)) * innerH;
+    return [px, py];
+  }
+
+  groupPointToPx(scale, groupIdx, sampleIdx, value) {
+    const {minY, maxY, top, bottom, innerH, centers} = scale;
+    const clamp = (val, lo, hi) => Math.min(hi, Math.max(lo, val));
+    const y = clamp(value, minY, maxY);
+    const py = top + innerH - ((y - minY) / (maxY - minY)) * innerH;
+    const cx = centers[groupIdx] || centers[centers.length - 1] || 0;
+    const offset = ((sampleIdx % 5) - 2) * 6;
+    return [cx + offset, py];
+  }
+
+  statsPxToData(tab, px, py, canvas) {
+    if (tab === 'corr') {
+      const scale = this.statsScales.corr;
+      if (!scale) return null;
+      const {minX, maxX, minY, maxY, marginX, marginY, innerW, innerH} = scale;
+      if (innerW <= 0 || innerH <= 0) return null;
+      const clamp = (val, lo, hi) => Math.min(hi, Math.max(lo, val));
+      const nx = clamp((px - marginX) / innerW, 0, 1);
+      const ny = clamp((py - marginY) / innerH, 0, 1);
+      const x = minX + nx * (maxX - minX);
+      const y = maxY - ny * (maxY - minY);
+      return {x, y};
+    }
+
+    const scale = this.statsScales[tab];
+    if (!scale) return null;
+    const {minY, maxY, top, innerH} = scale;
+    if (innerH <= 0) return null;
+    const clamp = (val, lo, hi) => Math.min(hi, Math.max(lo, val));
+    const ny = clamp((py - top) / innerH, 0, 1);
+    const value = maxY - ny * (maxY - minY);
+    return {value};
   }
 }
 

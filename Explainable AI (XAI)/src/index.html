@@ -221,10 +221,9 @@
         <div>
           <div class="panel">
             <h3>Correlation &amp; Covariance</h3>
-            <div class="input-group">
-              <label>X Values<textarea id="stats-x-input" placeholder="1, 2, 3"></textarea></label>
-              <label>Y Values<textarea id="stats-y-input" placeholder="2, 3, 4"></textarea></label>
-              <div class="hint small">Comma or newline separated numbers with equal length.</div>
+            <div class="stats-toolbar stacked">
+              <div class="hint small">Click the canvas to add paired samples. Drag points to adjust and right-click to remove them.</div>
+              <button id="corr-clear" class="ghost">Clear points</button>
             </div>
             <button id="compute-corr" class="primary">Compute</button>
             <div class="formula" id="corr-formula"></div>
@@ -235,14 +234,18 @@
               <div class="value-box"><strong>ȳ</strong><div id="corr-mean-y">—</div></div>
               <div class="value-box"><strong>Cov</strong><div id="corr-cov">—</div></div>
               <div class="value-box"><strong>r</strong><div id="corr-r">—</div></div>
+
             </div>
           </div>
           <div class="panel subtle-panel">
             <h4>Components</h4>
+
             <div class="calculations" id="corr-steps"></div>
+
           </div>
-
-
+        </div>
+      </div>
+    </div>
 
     <div class="stats-tab-content" id="stats-tab-ttest">
       <div class="main-grid stats-layout">
@@ -252,11 +255,14 @@
         <div>
           <div class="panel">
             <h3>Welch's t-test</h3>
-            <div class="input-group">
-              <label>Group A<textarea id="ttest-group-a" placeholder="5, 6, 7"></textarea></label>
-              <label>Group B<textarea id="ttest-group-b" placeholder="4, 8, 6"></textarea></label>
-              <div class="hint small">Two independent samples with at least two values each.</div>
+            <div class="stats-toolbar">
+              <div class="group-selector">
+                <label><input type="radio" name="ttest-group" value="0" checked> Group A</label>
+                <label><input type="radio" name="ttest-group" value="1"> Group B</label>
+              </div>
+              <button id="ttest-clear" class="ghost">Clear groups</button>
             </div>
+            <div class="hint small">Select a group, then click the canvas to add samples. Drag to adjust values and right-click to remove points.</div>
             <button id="compute-ttest" class="primary">Compute</button>
             <div class="formula" id="ttest-formula"></div>
             <div class="formula" id="ttest-df-formula"></div>
@@ -270,6 +276,7 @@
               <div class="value-box"><strong>t</strong><div id="ttest-t">—</div></div>
               <div class="value-box"><strong>df</strong><div id="ttest-df">—</div></div>
               <div class="value-box"><strong>p (two-tailed)</strong><div id="ttest-p">—</div></div>
+
             </div>
           </div>
           <div class="panel subtle-panel">
@@ -288,12 +295,15 @@
         <div>
           <div class="panel">
             <h3>One-way ANOVA</h3>
-            <div class="anova-inputs">
-              <label>Group 1<textarea class="anova-group" placeholder="10, 11, 9"></textarea></label>
-              <label>Group 2<textarea class="anova-group" placeholder="12, 13, 11"></textarea></label>
-              <label>Group 3<textarea class="anova-group" placeholder="8, 9, 10"></textarea></label>
+            <div class="stats-toolbar wrap">
+              <div class="group-selector">
+                <label><input type="radio" name="anova-group" value="0" checked> Group 1</label>
+                <label><input type="radio" name="anova-group" value="1"> Group 2</label>
+                <label><input type="radio" name="anova-group" value="2"> Group 3</label>
+              </div>
+              <button id="anova-clear" class="ghost">Clear groups</button>
             </div>
-            <div class="hint small">Provide at least two groups. Empty groups are ignored.</div>
+            <div class="hint small">Choose a group, then click the canvas to add observations. Drag to adjust and right-click to remove samples. Provide at least two non-empty groups.</div>
             <button id="compute-anova" class="primary">Compute</button>
             <div class="formula" id="anova-formula"></div>
             <div class="formula" id="anova-ms-formula"></div>
@@ -312,6 +322,7 @@
           </div>
           <div class="panel subtle-panel">
             <h4>Components</h4>
+
             <div class="calculations" id="anova-steps"></div>
           </div>
 
