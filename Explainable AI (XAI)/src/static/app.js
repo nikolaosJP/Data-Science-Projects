@@ -13,12 +13,14 @@ class App {
       gd: {m: 0, b: 0, fitted: false},
       manual: {m: 0, b: 0, fitted: false}
     };
+
     this.activeStatsTab = 'corr';
     this.statisticsState = {
       corr: {points: []},
       ttest: {groups: []},
       anova: {groups: []}
     };
+
 
     this.canvas = new CanvasHandler();
     this.olsSolver = new OLSSolver();
@@ -38,9 +40,11 @@ class App {
       tab.addEventListener('click', () => this.switchCategory(tab.dataset.category));
     });
 
+
     document.querySelectorAll('.stats-tab').forEach(tab => {
       tab.addEventListener('click', () => this.switchStatsTab(tab.dataset.statsTab));
     });
+
 
     // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
@@ -82,6 +86,7 @@ class App {
       if (category === 'regression') {
         this.canvas.draw(this.activeTab, this.points, this.models, this.showResiduals);
         this.canvas.drawLossPlot(this.gradientDescent.lossHistory);
+
       } else {
         this.drawStatsVisualization();
       }
@@ -100,6 +105,7 @@ class App {
       this.activeStatsTab = tab;
       this.drawStatsVisualization();
     }
+
   }
 
   switchTab(tab) {
@@ -249,6 +255,7 @@ class App {
     AppUtils.kRender(document.getElementById('gd-update-formula'),
       `m\\leftarrow m-\\eta\\,\\tfrac{\\partial J}{\\partial m},\\; b\\leftarrow b-\\eta\\,\\tfrac{\\partial J}{\\partial b}`);
     AppUtils.kRender(document.getElementById('corr-formula'),
+
       `r=\\frac{SS_{xy}}{\\sqrt{SS_{xx}SS_{yy}}}`);
     AppUtils.kRender(document.getElementById('cov-formula'),
       `SS_{xy}=\\sum (x_i-\\bar{x})(y_i-\\bar{y}),\\quad SS_{xx}=\\sum (x_i-\\bar{x})^2,\\quad SS_{yy}=\\sum (y_i-\\bar{y})^2`);
@@ -278,6 +285,7 @@ class App {
     if (!this.canvas || typeof this.canvas.drawStats !== 'function') return;
     const state = this.statisticsState[this.activeStatsTab] || {};
     this.canvas.drawStats(this.activeStatsTab, state);
+
   }
 
   computeCorrelation() {
@@ -286,6 +294,7 @@ class App {
       const ys = AppUtils.parseNumberList(document.getElementById('stats-y-input').value);
       const result = this.statisticsCalculator.correlation(xs, ys);
       document.getElementById('corr-n').textContent = result.n;
+
       document.getElementById('corr-mean-x').textContent = AppUtils.formatNumber(result.meanX, 4);
       document.getElementById('corr-mean-y').textContent = AppUtils.formatNumber(result.meanY, 4);
       document.getElementById('corr-cov').textContent = AppUtils.formatNumber(result.covariance);
@@ -305,6 +314,7 @@ class App {
       ]);
       this.drawStatsVisualization();
       AppUtils.kFlush();
+
     } catch (e) {
       alert(e.message);
     }
@@ -315,6 +325,7 @@ class App {
       const groupA = AppUtils.parseNumberList(document.getElementById('ttest-group-a').value);
       const groupB = AppUtils.parseNumberList(document.getElementById('ttest-group-b').value);
       const result = this.statisticsCalculator.tTest(groupA, groupB);
+
       document.getElementById('ttest-n1').textContent = result.n1;
       document.getElementById('ttest-n2').textContent = result.n2;
       document.getElementById('ttest-mean-a').textContent = AppUtils.formatNumber(result.meanA, 4);
@@ -340,6 +351,7 @@ class App {
       ]);
       this.drawStatsVisualization();
       AppUtils.kFlush();
+
     } catch (e) {
       alert(e.message);
     }
@@ -347,13 +359,16 @@ class App {
 
   computeAnova() {
     try {
+
       const rawGroups = Array.from(document.querySelectorAll('.anova-group'))
         .map(el => AppUtils.parseNumberList(el.value));
       const result = this.statisticsCalculator.anova(rawGroups);
+
       document.getElementById('anova-f').textContent = AppUtils.formatNumber(result.f);
       document.getElementById('anova-df1').textContent = AppUtils.formatNumber(result.df1, 2);
       document.getElementById('anova-df2').textContent = AppUtils.formatNumber(result.df2, 2);
       document.getElementById('anova-p').textContent = AppUtils.formatNumber(result.p, 4);
+
       document.getElementById('anova-k').textContent = result.k;
       document.getElementById('anova-n').textContent = result.totalN;
       document.getElementById('anova-ssb').textContent = AppUtils.formatNumber(result.ssBetween, 4);
