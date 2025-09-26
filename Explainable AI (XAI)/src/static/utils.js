@@ -155,6 +155,7 @@ class CanvasHandler {
         break;
       case 'anova':
         this.drawGroupedDotPlot('anova', ctx, canvas, state.groups || [], state.grandMean);
+
         break;
     }
   }
@@ -276,6 +277,7 @@ class CanvasHandler {
     const values = allGroups.flatMap(g => g.values || []);
     const hasValues = values.length > 0;
 
+
     const left = 80;
     const right = 40;
     const top = 40;
@@ -288,6 +290,7 @@ class CanvasHandler {
     const pad = (maxY - minY) * 0.1 || 1;
     minY -= pad;
     maxY += pad;
+
 
     const toPy = value => top + innerH - ((value - minY) / (maxY - minY)) * innerH;
 
@@ -334,6 +337,7 @@ class CanvasHandler {
     allGroups.forEach((group, idx) => {
       const cx = centers[idx];
       (group.values || []).forEach((value, i) => {
+
         const py = toPy(value);
         const offset = ((i % 5) - 2) * 6;
         ctx.fillStyle = '#6366f1';
@@ -367,6 +371,7 @@ class CanvasHandler {
       innerW, innerH,
       centers
     };
+
   }
 
   clearStatsCanvas(ctx, canvas) {
