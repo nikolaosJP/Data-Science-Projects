@@ -16,4 +16,4 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 * [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
 
 ### Explainable AI (XAI)
-* [Explainable AI](progress): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
+* [Explainable AI](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Explainable%20AI%20(XAI)): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
