@@ -16,9 +16,8 @@
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="ols">OLS</div>
-    <div class="tab" data-tab="gd">Gradient Descent</div>
-    <div class="tab" data-tab="manual">Manual</div>
+    <div class="tab active" data-tab="regression">Regression</div>
+    <div class="tab" data-tab="stats">Statistics</div>
   </div>
 
   <div class="panel">
@@ -30,8 +29,18 @@
     </div>
   </div>
 
-  <!-- OLS Tab -->
-  <div class="tab-content active" id="tab-ols">
+  <!-- Regression Tab -->
+  <div class="tab-content active" id="tab-regression">
+    <div class="panel">
+      <div class="tabs" style="margin-bottom: 16px;">
+        <div class="tab active" data-regtab="ols">OLS</div>
+        <div class="tab" data-regtab="gd">Gradient Descent</div>
+        <div class="tab" data-regtab="manual">Manual Stats</div>
+        <div class="tab" data-regtab="logistic">Logistic Regression</div>
+      </div>
+
+      <!-- OLS Subtab -->
+      <div class="regtab-content active" id="regtab-ols">
     <div class="main-grid">
       <div class="panel">
         <canvas id="plot-ols" width="800" height="500"></canvas>
@@ -56,8 +65,8 @@
     </div>
   </div>
 
-  <!-- GD Tab -->
-  <div class="tab-content" id="tab-gd">
+      <!-- GD Subtab -->
+      <div class="regtab-content" id="regtab-gd">
     <div class="main-grid">
       <div class="panel">
         <div class="gd-grid">
@@ -127,8 +136,8 @@
     </div>
   </div>
 
-  <!-- Manual Tab -->
-  <div class="tab-content" id="tab-manual">
+      <!-- Manual Subtab -->
+      <div class="regtab-content" id="regtab-manual">
     <div class="main-grid">
       <div class="panel">
         <canvas id="plot-manual" width="800" height="500"></canvas>
@@ -181,6 +190,326 @@
               </thead>
               <tbody id="manual-body"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+      <!-- Logistic Regression Subtab -->
+      <div class="regtab-content" id="regtab-logistic">
+    <div class="main-grid">
+      <div class="panel">
+        <div class="gd-grid">
+          <div>
+            <div class="subtle">Classification Data + Decision Boundary</div>
+            <canvas id="plot-logistic" width="800" height="500"></canvas>
+            <div class="hint" style="margin-top: 10px;">Select a group button, then click to add points. Red = Group 0, Blue = Group 1.</div>
+          </div>
+          <div>
+            <div class="subtle">Loss History</div>
+            <canvas id="lr-loss-plot" width="380" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <h3>Logistic Regression</h3>
+          <div class="controls">
+            <button id="init-lr" class="warning">Initialize</button>
+            <button id="next-step-lr" class="success" disabled>Next</button>
+            <button id="lr-auto-run">Auto</button>
+            <button id="reset-lr">Reset</button>
+          </div>
+          <div class="controls">
+            <strong>Select Group:</strong>
+            <button id="lr-group0-btn" class="warning">Group 0</button>
+            <button id="lr-group1-btn">Group 1</button>
+          </div>
+          <label>η: <input id="lr-lr" type="number" step="0.01" value="0.1" min="0.001"></label>
+          <div class="iteration-info">
+            <strong>Iter: </strong><span id="lr-iteration">0</span> •
+            <strong>Step: </strong><span id="lr-current-step-name">Not Started</span>
+          </div>
+
+          <h4>Classification Metrics</h4>
+          <label>
+            Threshold: <input id="lr-threshold" type="range" min="0" max="1" step="0.01" value="0.5">
+            <span id="lr-threshold-val">0.50</span>
+            <button id="lr-youden-btn" class="success" style="margin-left: 8px;">Use Youden</button>
+          </label>
+
+          <div class="confusion-matrix" id="lr-confusion-matrix" style="display:none">
+            <h4>Confusion Matrix</h4>
+            <table class="cm-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Predicted 0</th>
+                  <th>Predicted 1</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Actual 0</th>
+                  <td id="cm-tn">0</td>
+                  <td id="cm-fp">0</td>
+                </tr>
+                <tr>
+                  <th>Actual 1</th>
+                  <td id="cm-fn">0</td>
+                  <td id="cm-tp">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="values-grid">
+            <div class="value-box"><strong>Accuracy</strong><div id="lr-accuracy">—</div></div>
+            <div class="value-box"><strong>Precision</strong><div id="lr-precision">—</div></div>
+            <div class="value-box"><strong>Recall</strong><div id="lr-recall">—</div></div>
+            <div class="value-box"><strong>Specificity</strong><div id="lr-specificity">—</div></div>
+            <div class="value-box"><strong>F1 Score</strong><div id="lr-f1">—</div></div>
+            <div class="value-box"><strong>Youden</strong><div id="lr-youden">—</div></div>
+          </div>
+
+          <!-- LR Steps -->
+          <div class="step-info" id="lr-step-0" style="display:none">
+            <div class="step-title">Step 0: Init</div>
+            <div class="formula" id="lr-init-formula"></div>
+          </div>
+          <div class="step-info" id="lr-step-1" style="display:none">
+            <div class="step-title">Step 1: Predictions</div>
+            <div class="formula" id="lr-h-formula"></div>
+            <div class="table-container">
+              <table id="lr-pred-table">
+                <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>hᵢ</th><th>Error</th></tr></thead>
+                <tbody id="lr-pred-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="step-info" id="lr-step-2" style="display:none">
+            <div class="step-title">Step 2: Cost</div>
+            <div class="formula" id="lr-j-formula"></div>
+            <div class="value-box"><strong>J</strong><div id="lr-cost-value">—</div></div>
+          </div>
+          <div class="step-info" id="lr-step-3" style="display:none">
+            <div class="step-title">Step 3: Gradients</div>
+            <div class="formula" id="lr-grads-formula"></div>
+            <div class="values-grid">
+              <div class="value-box"><strong>∂J/∂m</strong><div id="lr-grad-m-val">—</div></div>
+              <div class="value-box"><strong>∂J/∂b</strong><div id="lr-grad-b-val">—</div></div>
+            </div>
+          </div>
+          <div class="step-info" id="lr-step-4" style="display:none">
+            <div class="step-title">Step 4: Update</div>
+            <div class="formula" id="lr-update-formula"></div>
+            <div class="values-grid">
+              <div class="value-box"><strong>New m</strong><div id="lr-new-m-val">—</div></div>
+              <div class="value-box"><strong>New b</strong><div id="lr-new-b-val">—</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- Statistics Tab -->
+  <div class="tab-content" id="tab-stats">
+    <div class="panel">
+      <h3>Statistics Tools</h3>
+      <div class="tabs" style="margin-bottom: 20px;">
+        <div class="tab active" data-subtab="correlation">Correlation</div>
+        <div class="tab" data-subtab="ttest">t-Test</div>
+        <div class="tab" data-subtab="anova">ANOVA</div>
+      </div>
+
+      <!-- Correlation -->
+      <div class="subtab-content active" id="subtab-correlation">
+        <div class="main-grid">
+          <div class="panel">
+            <canvas id="plot-correlation" width="800" height="500"></canvas>
+            <div class="hint">Click to add paired observations (x, y) • Right-click to delete last point</div>
+            <div class="controls">
+              <button id="calc-correlation" class="primary">Calculate</button>
+              <button id="clear-correlation">Clear</button>
+              <button id="sample-correlation">Sample Data</button>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h4>Pearson Correlation</h4>
+              <p><strong>Points: </strong><span id="corr-point-count">0</span></p>
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+                <p style="margin:4px 0;font-size:12px;"><strong>What is Correlation?</strong> Measures the strength and direction of a linear relationship between two variables. r ranges from -1 (perfect negative) to +1 (perfect positive), with 0 indicating no linear relationship.</p>
+              </div>
+              <div id="corr-results" style="display:none">
+                <h4>Formulas</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="corr-formula-tex"></span></div>
+                  <div class="calc-step"><span id="corr-cov-formula-tex"></span></div>
+                  <div class="calc-step"><span id="corr-std-formula-tex"></span></div>
+                </div>
+                <h4>Steps</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="corr-n-tex"></span></div>
+                  <div class="calc-step"><span id="corr-mean1-tex"></span></div>
+                  <div class="calc-step"><span id="corr-mean2-tex"></span></div>
+                  <div class="calc-step"><span id="corr-cov-tex"></span></div>
+                  <div class="calc-step"><span id="corr-std1-tex"></span></div>
+                  <div class="calc-step"><span id="corr-std2-tex"></span></div>
+                </div>
+                <h4>Result</h4>
+                <div class="values-grid">
+                  <div class="value-box"><strong>r</strong><div id="corr-r-val">—</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- t-Test -->
+      <div class="subtab-content" id="subtab-ttest">
+        <div class="main-grid">
+          <div class="panel">
+            <canvas id="plot-ttest" width="800" height="500"></canvas>
+            <div class="hint">Click left (red) or right (blue) region to add points • Right-click to delete last</div>
+            <div class="controls">
+              <span><strong>Active Group: </strong></span>
+              <button id="ttest-group1-btn" class="success">Group 1 (Left)</button>
+              <button id="ttest-group2-btn">Group 2 (Right)</button>
+              <button id="calc-ttest" class="primary">Calculate</button>
+              <button id="clear-ttest">Clear</button>
+              <button id="sample-ttest">Sample Data</button>
+            </div>
+            <div class="controls" style="margin-top:12px;">
+              <span><strong>Test Type: </strong></span>
+              <label style="display:inline;margin:0 12px 0 0;font-weight:normal;">
+                <input type="radio" name="ttest-type" value="two-tailed" checked> Two-tailed
+              </label>
+              <label style="display:inline;margin:0 12px 0 0;font-weight:normal;">
+                <input type="radio" name="ttest-type" value="left"> One-tailed (left)
+              </label>
+              <label style="display:inline;margin:0 12px 0 0;font-weight:normal;">
+                <input type="radio" name="ttest-type" value="right"> One-tailed (right)
+              </label>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h4>Two-Sample t-Test</h4>
+              <p><strong>Group 1 (red): </strong><span id="ttest-n1">0</span> points | <strong>Group 2 (blue): </strong><span id="ttest-n2">0</span> points</p>
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+                <p style="margin:4px 0;font-size:12px;"><strong>What is t-Test?</strong> A statistical test to compare means of two independent groups. The t-statistic measures how many standard errors the means are apart.</p>
+              </div>
+              <div id="ttest-results" style="display:none">
+                <h4>Formulas</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="ttest-formula-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-pooled-formula-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-se-formula-tex"></span></div>
+                </div>
+                <h4>Steps</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="ttest-n-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-mean1-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-mean2-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-var1-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-var2-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-pooled-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-se-tex"></span></div>
+                  <div class="calc-step"><span id="ttest-df-tex"></span></div>
+                </div>
+                <h4>Result</h4>
+                <div class="values-grid">
+                  <div class="value-box"><strong>t</strong><div id="ttest-t-val">—</div></div>
+                  <div class="value-box"><strong>df</strong><div id="ttest-df-val">—</div></div>
+                  <div class="value-box"><strong>|t|</strong><div id="ttest-t-abs">—</div></div>
+                  <div class="value-box"><strong>p-value</strong><div id="ttest-pval">—</div></div>
+                </div>
+                <div class="calculations" style="background:#dbeafe;border-color:#3b82f6;margin-top:12px;">
+                  <p style="margin:4px 0;font-size:12px;"><strong>Interpretation:</strong> <span id="ttest-pval-text">Calculate to see result</span></p>
+                </div>
+                <div class="panel" style="margin-top:12px;">
+                  <h4>t-Distribution</h4>
+                  <canvas id="ttest-dist-plot" width="400" height="300"></canvas>
+                  <p style="font-size:11px;color:#64748b;margin-top:8px;">Gray curve: t-distribution. Red line: your t-statistic. Shaded area: p-value (changes based on test type)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANOVA -->
+      <div class="subtab-content" id="subtab-anova">
+        <div class="main-grid">
+          <div class="panel">
+            <canvas id="plot-anova" width="800" height="500"></canvas>
+            <div class="hint">Click a colored region to add points to that group • Right-click to delete last from active group • Use keys 1-5 to select groups</div>
+            <div class="controls">
+              <span><strong>Active Group: </strong></span>
+              <button id="anova-g1-btn" class="success">G1</button>
+              <button id="anova-g2-btn">G2</button>
+              <button id="anova-g3-btn">G3</button>
+              <button id="anova-g4-btn">G4</button>
+              <button id="anova-g5-btn">G5</button>
+              <button id="calc-anova" class="primary">Calculate</button>
+              <button id="clear-anova">Clear</button>
+              <button id="sample-anova">Sample Data</button>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h4>One-Way ANOVA</h4>
+              <p><strong>Group Counts: </strong>
+                <span id="anova-g1">G1: 0</span> |
+                <span id="anova-g2">G2: 0</span> |
+                <span id="anova-g3">G3: 0</span> |
+                <span id="anova-g4">G4: 0</span> |
+                <span id="anova-g5">G5: 0</span>
+              </p>
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+                <p style="margin:4px 0;font-size:12px;"><strong>What is ANOVA?</strong> Analysis of Variance tests whether means of multiple groups are significantly different. The F-statistic compares between-group variance to within-group variance.</p>
+              </div>
+              <div id="anova-results" style="display:none">
+                <h4>Formulas</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="anova-formula-tex"></span></div>
+                  <div class="calc-step"><span id="anova-ssb-formula-tex"></span></div>
+                  <div class="calc-step"><span id="anova-ssw-formula-tex"></span></div>
+                  <div class="calc-step"><span id="anova-df-formula-tex"></span></div>
+                </div>
+                <h4>Steps</h4>
+                <div class="calculations">
+                  <div class="calc-step"><span id="anova-grand-tex"></span></div>
+                  <div class="calc-step"><span id="anova-means-tex"></span></div>
+                  <div class="calc-step"><span id="anova-ssb-tex"></span></div>
+                  <div class="calc-step"><span id="anova-ssw-tex"></span></div>
+                  <div class="calc-step"><span id="anova-dfb-tex"></span></div>
+                  <div class="calc-step"><span id="anova-dfw-tex"></span></div>
+                  <div class="calc-step"><span id="anova-msb-tex"></span></div>
+                  <div class="calc-step"><span id="anova-msw-tex"></span></div>
+                </div>
+                <h4>Result</h4>
+                <div class="values-grid">
+                  <div class="value-box"><strong>F</strong><div id="anova-f-val">—</div></div>
+                  <div class="value-box"><strong>df</strong><div id="anova-df-val">—</div></div>
+                  <div class="value-box"><strong>p-value</strong><div id="anova-pval">—</div></div>
+                </div>
+                <div class="calculations" style="background:#dbeafe;border-color:#3b82f6;margin-top:12px;">
+                  <p style="margin:4px 0;font-size:12px;"><strong>Interpretation:</strong> <span id="anova-pval-text">Calculate to see result</span></p>
+                </div>
+                <div class="panel" style="margin-top:12px;">
+                  <h4>F-Distribution</h4>
+                  <canvas id="anova-dist-plot" width="400" height="300"></canvas>
+                  <p style="font-size:11px;color:#64748b;margin-top:8px;">Gray curve: F-distribution. Red line: your F-statistic. Shaded area: p-value (right tail)</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

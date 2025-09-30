@@ -355,7 +355,463 @@ class ManualCalculator {
   }
 }
 
+// ============================================================================
+// LOGISTIC REGRESSION
+// ============================================================================
+
+class LogisticRegression {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.initialized = false;
+    this.currentStep = -1;
+    this.iteration = 0;
+    this.lossHistory = [];
+    this.autoRunning = false;
+    this.stepData = {};
+    this.autoTimeoutId = null;
+  }
+
+  sigmoid(z) {
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  initialize(points) {
+    if (points.length < 2) throw new Error('Add at least 2 points first!');
+
+    const model = { m: 0, b: 0, fitted: true };
+
+    this.initialized = true;
+    this.currentStep = 0;
+    this.iteration = 0;
+    this.lossHistory = [];
+    this.stopAutoRun();
+    this.stepData = {};
+
+    document.getElementById('next-step-lr').disabled = false;
+    this.showAllSteps();
+    this.showStep(0);
+    AppUtils.kRender(document.getElementById('lr-init-formula'),
+                    `m_0=${model.m.toFixed(6)},\\; b_0=${model.b.toFixed(6)}`);
+    this.updateStepDisplay();
+
+    return model;
+  }
+
+  executeStep(points, model) {
+    if (!this.initialized) return model;
+
+    switch(this.currentStep) {
+      case 0: return this.initStep(model);
+      case 1: return this.predictionStep(points, model);
+      case 2: return this.costStep(points, model);
+      case 3: return this.gradientStep(points, model);
+      case 4: return this.updateStep(model);
+    }
+    return model;
+  }
+
+  initStep(model) {
+    this.showStep(0);
+    AppUtils.kRender(document.getElementById('lr-init-formula'),
+                    `m_0=${model.m.toFixed(6)},\\; b_0=${model.b.toFixed(6)}`);
+    this.currentStep++;
+    this.updateStepDisplay();
+    return model;
+  }
+
+  predictionStep(points, model) {
+    this.stepData.predictions = [];
+    this.stepData.errors = [];
+    for (const p of points) {
+      const z = model.m * p.x + model.b;
+      const pred = this.sigmoid(z);
+      this.stepData.predictions.push(pred);
+      this.stepData.errors.push(pred - p.label);
+    }
+
+    this.showStep(1);
+    AppUtils.kRender(document.getElementById('lr-h-formula'),
+                    `h_i = \\sigma(m\\,x_i + b) = \\frac{1}{1+e^{-(mx_i+b)}}`);
+    this.displayPredictionsTable(points);
+    this.currentStep++;
+    this.updateStepDisplay();
+    return model;
+  }
+
+  costStep(points, model) {
+    let cost = 0;
+    const n = points.length;
+    for (let i = 0; i < n; i++) {
+      const h = this.stepData.predictions[i];
+      const y = points[i].label;
+      cost += -(y * Math.log(h + 1e-10) + (1 - y) * Math.log(1 - h + 1e-10));
+    }
+    this.stepData.cost = cost / n;
+    this.lossHistory.push(this.stepData.cost);
+
+    this.showStep(2);
+    AppUtils.kRender(document.getElementById('lr-j-formula'),
+                    `J=-\\tfrac{1}{n}\\sum [y_i\\log(h_i)+(1-y_i)\\log(1-h_i)] = ${this.stepData.cost.toFixed(6)}`);
+    document.getElementById('lr-cost-value').textContent = this.stepData.cost.toFixed(6);
+    this.currentStep++;
+    this.updateStepDisplay();
+    return model;
+  }
+
+  gradientStep(points, model) {
+    const n = points.length;
+    this.stepData.gradM = 0;
+    this.stepData.gradB = 0;
+    for (let i = 0; i < n; i++) {
+      this.stepData.gradM += points[i].x * this.stepData.errors[i] / n;
+      this.stepData.gradB += this.stepData.errors[i] / n;
+    }
+
+    this.showStep(3);
+    AppUtils.kRender(document.getElementById('lr-grads-formula'),
+                    `\\frac{\\partial J}{\\partial m}=\\tfrac{1}{n}\\sum x_i(h_i-y_i),\\; \\frac{\\partial J}{\\partial b}=\\tfrac{1}{n}\\sum (h_i-y_i)`);
+    document.getElementById('lr-grad-m-val').textContent = this.stepData.gradM.toFixed(6);
+    document.getElementById('lr-grad-b-val').textContent = this.stepData.gradB.toFixed(6);
+    this.currentStep++;
+    this.updateStepDisplay();
+    return model;
+  }
+
+  updateStep(model) {
+    const lr = parseFloat(document.getElementById('lr-lr').value) || 0.1;
+    const newModel = {
+      m: model.m - lr * this.stepData.gradM,
+      b: model.b - lr * this.stepData.gradB,
+      fitted: true
+    };
+
+    this.showStep(4);
+    AppUtils.kRender(document.getElementById('lr-update-formula'),
+                    `m\\leftarrow m-\\eta\\,\\tfrac{\\partial J}{\\partial m},\\; b\\leftarrow b-\\eta\\,\\tfrac{\\partial J}{\\partial b}`);
+    document.getElementById('lr-new-m-val').textContent = newModel.m.toFixed(6);
+    document.getElementById('lr-new-b-val').textContent = newModel.b.toFixed(6);
+
+    this.iteration++;
+    this.currentStep = 0;
+    this.updateStepDisplay();
+    return newModel;
+  }
+
+  displayPredictionsTable(points) {
+    const tbody = document.getElementById('lr-pred-body');
+    tbody.innerHTML = '';
+    for (let i = 0; i < points.length; i++) {
+      const row = tbody.insertRow();
+      row.insertCell(0).textContent = i + 1;
+      row.insertCell(1).textContent = points[i].x.toFixed(3);
+      row.insertCell(2).textContent = points[i].label;
+      row.insertCell(3).textContent = this.stepData.predictions[i].toFixed(3);
+      row.insertCell(4).textContent = this.stepData.errors[i].toFixed(3);
+    }
+  }
+
+  showAllSteps() {
+    for (let i = 0; i <= 4; i++) {
+      const el = document.getElementById(`lr-step-${i}`);
+      if (el) el.style.display = 'block';
+    }
+  }
+
+  showStep(stepNum) {
+    for (let i = 0; i <= 4; i++) {
+      const el = document.getElementById(`lr-step-${i}`);
+      if (el) el.classList.remove('current-step');
+    }
+    const cur = document.getElementById(`lr-step-${stepNum}`);
+    if (cur) cur.classList.add('current-step');
+  }
+
+  updateStepDisplay() {
+    const names = ['Initialization', 'Predictions', 'Cost', 'Gradients', 'Update'];
+    document.getElementById('lr-iteration').textContent = this.iteration;
+    document.getElementById('lr-current-step-name').textContent =
+      this.currentStep >= 0 ? names[this.currentStep] : 'Not Started';
+  }
+
+  runOneIteration(points, model) {
+    const startIter = this.iteration;
+    let newModel = model;
+    let guard = 0;
+    while (this.iteration === startIter && guard < 10) {
+      newModel = this.executeStep(points, newModel);
+      guard++;
+    }
+    return newModel;
+  }
+
+  startAutoRun(points, getCurrentModel, onUpdate) {
+    this.autoRunning = !this.autoRunning;
+    document.getElementById('lr-auto-run').textContent = this.autoRunning ? 'Stop' : 'Auto';
+
+    if (this.autoTimeoutId) {
+      clearTimeout(this.autoTimeoutId);
+      this.autoTimeoutId = null;
+    }
+
+    if (this.autoRunning) {
+      const autoStep = () => {
+        if (!this.autoRunning) return;
+
+        const currentModel = getCurrentModel();
+        const newModel = this.runOneIteration(points, currentModel);
+        onUpdate(newModel);
+
+        this.autoTimeoutId = setTimeout(autoStep, 50);
+      };
+      autoStep();
+    }
+  }
+
+  stopAutoRun() {
+    this.autoRunning = false;
+    if (this.autoTimeoutId) {
+      clearTimeout(this.autoTimeoutId);
+      this.autoTimeoutId = null;
+    }
+    const btn = document.getElementById('lr-auto-run');
+    if (btn) btn.textContent = 'Auto';
+  }
+
+  calculateMetrics(points, model, threshold = 0.5) {
+    if (!points.length) return null;
+
+    let tp = 0, fp = 0, tn = 0, fn = 0;
+    const predictions = [];
+
+    for (const p of points) {
+      const z = model.m * p.x + model.b;
+      const prob = this.sigmoid(z);
+      const pred = prob >= threshold ? 1 : 0;
+      predictions.push({ actual: p.label, predicted: pred, probability: prob });
+
+      if (p.label === 1 && pred === 1) tp++;
+      else if (p.label === 0 && pred === 1) fp++;
+      else if (p.label === 0 && pred === 0) tn++;
+      else if (p.label === 1 && pred === 0) fn++;
+    }
+
+    const accuracy = (tp + tn) / points.length;
+    const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+    const recall = tp + fn > 0 ? tp / (tp + fn) : 0; // Also known as sensitivity
+    const specificity = tn + fp > 0 ? tn / (tn + fp) : 0;
+    const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+
+    return {
+      tp, fp, tn, fn,
+      accuracy, precision, recall, specificity, f1,
+      predictions
+    };
+  }
+
+  calculateYoudenThreshold(points, model) {
+    if (!points.length) return 0.5;
+
+    // Calculate Youden index for various thresholds
+    let bestThreshold = 0.5;
+    let bestYouden = -1;
+
+    for (let t = 0; t <= 1; t += 0.01) {
+      const metrics = this.calculateMetrics(points, model, t);
+      const youden = metrics.recall + metrics.specificity - 1;
+
+      if (youden > bestYouden) {
+        bestYouden = youden;
+        bestThreshold = t;
+      }
+    }
+
+    return bestThreshold;
+  }
+}
+
+// ============================================================================
+// STATISTICS CALCULATORS
+// ============================================================================
+
+class StatisticsCalculator {
+  // Approximation of the gamma function using Lanczos approximation
+  lnGamma(z) {
+    const g = 7;
+    const C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+      771.32342877765313, -176.61502916214059, 12.507343278686905,
+      -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+
+    if (z < 0.5) return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - this.lnGamma(1 - z);
+
+    z -= 1;
+    let x = C[0];
+    for (let i = 1; i < g + 2; i++) x += C[i] / (z + i);
+
+    const t = z + g + 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+
+  // Regularized incomplete beta function (for t-distribution CDF)
+  betaInc(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+
+    const bt = Math.exp(this.lnGamma(a + b) - this.lnGamma(a) - this.lnGamma(b) +
+                        a * Math.log(x) + b * Math.log(1 - x));
+
+    if (x < (a + 1) / (a + b + 2)) {
+      return bt * this.betaCF(x, a, b) / a;
+    } else {
+      return 1 - bt * this.betaCF(1 - x, b, a) / b;
+    }
+  }
+
+  // Continued fraction for incomplete beta function
+  betaCF(x, a, b, maxIter = 200, eps = 1e-10) {
+    const qab = a + b;
+    const qap = a + 1;
+    const qam = a - 1;
+    let c = 1;
+    let d = 1 - qab * x / qap;
+    if (Math.abs(d) < 1e-30) d = 1e-30;
+    d = 1 / d;
+    let h = d;
+
+    for (let m = 1; m <= maxIter; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < 1e-30) d = 1e-30;
+      c = 1 + aa / c;
+      if (Math.abs(c) < 1e-30) c = 1e-30;
+      d = 1 / d;
+      h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < 1e-30) d = 1e-30;
+      c = 1 + aa / c;
+      if (Math.abs(c) < 1e-30) c = 1e-30;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < eps) break;
+    }
+    return h;
+  }
+
+  // t-distribution CDF
+  tCDF(t, df) {
+    const x = df / (df + t * t);
+    return 1 - 0.5 * this.betaInc(x, df / 2, 0.5);
+  }
+
+  // Two-tailed p-value for t-test
+  tTestPValue(t, df) {
+    const absT = Math.abs(t);
+    const oneTailed = 1 - this.tCDF(absT, df);
+    return 2 * oneTailed;
+  }
+
+  // F-distribution CDF (approximation)
+  fCDF(f, df1, df2) {
+    if (f <= 0) return 0;
+    const x = df2 / (df2 + df1 * f);
+    return 1 - this.betaInc(x, df2 / 2, df1 / 2);
+  }
+
+  // p-value for F-test (ANOVA)
+  fTestPValue(f, df1, df2) {
+    return 1 - this.fCDF(f, df1, df2);
+  }
+
+  calculateCorrelation(group1, group2) {
+    const n = Math.min(group1.length, group2.length);
+    if (n < 2) throw new Error('Need at least 2 paired observations!');
+
+    const mean1 = group1.slice(0, n).reduce((s, v) => s + v, 0) / n;
+    const mean2 = group2.slice(0, n).reduce((s, v) => s + v, 0) / n;
+
+    let num = 0, den1 = 0, den2 = 0;
+    for (let i = 0; i < n; i++) {
+      const d1 = group1[i] - mean1;
+      const d2 = group2[i] - mean2;
+      num += d1 * d2;
+      den1 += d1 * d1;
+      den2 += d2 * d2;
+    }
+
+    const r = num / Math.sqrt(den1 * den2);
+    return { r, n, mean1, mean2 };
+  }
+
+  calculateTTest(group1, group2) {
+    const n1 = group1.length;
+    const n2 = group2.length;
+    if (n1 < 2 || n2 < 2) throw new Error('Each group needs at least 2 observations!');
+
+    const mean1 = group1.reduce((s, v) => s + v, 0) / n1;
+    const mean2 = group2.reduce((s, v) => s + v, 0) / n2;
+
+    const var1 = group1.reduce((s, v) => s + Math.pow(v - mean1, 2), 0) / (n1 - 1);
+    const var2 = group2.reduce((s, v) => s + Math.pow(v - mean2, 2), 0) / (n2 - 1);
+
+    const pooledVar = ((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2);
+    const se = Math.sqrt(pooledVar * (1/n1 + 1/n2));
+    const t = (mean1 - mean2) / se;
+    const df = n1 + n2 - 2;
+    const pValue = this.tTestPValue(t, df);
+
+    return { t, df, mean1, mean2, var1, var2, n1, n2, se, pValue };
+  }
+
+  calculateANOVA(groups) {
+    if (groups.length < 2) throw new Error('Need at least 2 groups!');
+    for (const g of groups) {
+      if (g.length < 1) throw new Error('Each group needs at least 1 observation!');
+    }
+
+    // Grand mean
+    let totalSum = 0, totalN = 0;
+    for (const g of groups) {
+      totalSum += g.reduce((s, v) => s + v, 0);
+      totalN += g.length;
+    }
+    const grandMean = totalSum / totalN;
+
+    // Group means
+    const groupMeans = groups.map(g => g.reduce((s, v) => s + v, 0) / g.length);
+
+    // Between-group sum of squares (SSB)
+    let ssb = 0;
+    for (let i = 0; i < groups.length; i++) {
+      ssb += groups[i].length * Math.pow(groupMeans[i] - grandMean, 2);
+    }
+
+    // Within-group sum of squares (SSW)
+    let ssw = 0;
+    for (let i = 0; i < groups.length; i++) {
+      for (const val of groups[i]) {
+        ssw += Math.pow(val - groupMeans[i], 2);
+      }
+    }
+
+    const dfb = groups.length - 1;
+    const dfw = totalN - groups.length;
+    const msb = ssb / dfb;
+    const msw = ssw / dfw;
+    const f = msb / msw;
+    const pValue = this.fTestPValue(f, dfb, dfw);
+
+    return { f, dfb, dfw, ssb, ssw, msb, msw, grandMean, groupMeans, groups, pValue };
+  }
+}
+
 // Export classes to global scope
 window.OLSSolver = OLSSolver;
 window.GradientDescent = GradientDescent;
 window.ManualCalculator = ManualCalculator;
+window.LogisticRegression = LogisticRegression;
+window.StatisticsCalculator = StatisticsCalculator;

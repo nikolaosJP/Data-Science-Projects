@@ -19,11 +19,11 @@ input[type=number]{width:100px;padding:6px 8px;border:1px solid #cbd5e1;border-r
 input[type=checkbox]{margin-right:4px}
 .step-info{background:#f0f9ff;border:2px solid #0ea5e9;border-radius:8px;padding:16px;margin-bottom:12px}
 .step-title{font-size:16px;font-weight:bold;color:#0c4a6e;margin-bottom:8px}
-.formula{background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-size:13px}
+.formula{background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-size:11px;max-width:100%;word-wrap:break-word}
 .values-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}
 .value-box{background:#f1f5f9;padding:8px;border-radius:4px;text-align:center}
-.calculations{background:#fefce8;border:1px solid #facc15;border-radius:6px;padding:12px;margin:8px 0}
-.calc-step{margin:6px 0;font-size:13px}
+.calculations{background:#fefce8;border:1px solid #facc15;border-radius:6px;padding:12px;margin:8px 0;overflow-x:auto}
+.calc-step{margin:6px 0;font-size:12px;overflow-x:auto}
 canvas{width:100%;height:auto;border:1px solid #e2e8f0;border-radius:6px;cursor:crosshair;display:block;touch-action:none}
 .hint{color:#64748b;font-size:12px;margin-top:8px}
 .current-step{background:#dcfce7;border-color:#16a34a}
@@ -34,3 +34,16 @@ th{background:#f8fafc;font-weight:600}
 .gd-grid{display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:stretch}
 .subtle{color:#64748b;font-size:12px;margin:4px 0 8px}
 .iteration-info{background:#fef3c7;padding:12px;border-radius:6px;margin:12px 0}
+.subtab-content{display:none}
+.subtab-content.active{display:block}
+.regtab-content{display:none}
+.regtab-content.active{display:block}
+textarea{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:4px;font-family:inherit;resize:vertical;margin:4px 0}
+label{display:block;margin:8px 0;font-weight:500}
+h4{margin:16px 0 8px;color:#1e293b}
+p{color:#64748b;font-size:13px;margin:8px 0}
+.confusion-matrix{margin:12px 0;padding:12px;background:#f8fafc;border-radius:6px}
+.cm-table{margin:0 auto;font-size:13px}
+.cm-table th{background:#e2e8f0;font-weight:600}
+.cm-table td{font-weight:bold;font-size:14px}
+input[type=range]{width:100%;margin:8px 0}
