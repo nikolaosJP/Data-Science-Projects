@@ -1,19 +1,34 @@
-# Linear Regression Learning Platform
+# Machine Learning & Statistics Learning Platform
 
-An interactive web application designed to help students, researchers, and practitioners learn and visualize how linear regression works from first principles. The platform demonstrates:
+An interactive web application for learning machine learning algorithms and statistical methods through visualization. Click to add data, see algorithms work step-by-step, and build intuition through real-time feedback.
 
-- Ordinary Least Squares (OLS)
-- Gradient Descent (GD)
-- Sum of Squares decomposition (TSS, ESS, RSS)
+![Application Screenshot](screenshots/app-preview.png)
 
-This makes abstract statistical concepts easier to understand by coupling equations with interactive visualizations.
+## Features
 
+**Regression**: OLS, Gradient Descent with loss visualization, Manual calculations (TSS/ESS/RSS), Logistic Regression with classification metrics
+
+**Statistics**: Pearson Correlation, Two-sample t-Test, One-way ANOVA with distribution visualizations
 
 ## Setup
-
-Clone the repository, install dependencies, and run the application locally:
 
 ```bash
 pip install -r requirements.txt
 python src/app.py
+```
+
+Visit http://127.0.0.1:5000
+
+## Usage
+
+**Regression tabs**: Click to add points, drag to move, right-click to delete. Use "Solve" to fit model. Gradient Descent shows step-by-step optimization.
+
+**Logistic Regression**: Select group, add points, click "Initialize" then "Auto" to train. Adjust threshold or use Youden's index for optimal cutoff.
+
+**Statistics tabs**: Add data points by clicking canvas regions. View detailed calculations, test statistics, and distribution plots.
+
+## Architecture
+
+- **Backend**: Flask 3.0.0 serving static files
+- **Frontend**: Vanilla JavaScript (utils.js, solvers.js, app.js), KaTeX for formulas, Canvas API for rendering
 
