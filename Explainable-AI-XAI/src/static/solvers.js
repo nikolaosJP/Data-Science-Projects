@@ -809,9 +809,800 @@ class StatisticsCalculator {
   }
 }
 
+// ============================================================================
+// DECISION TREE
+// ============================================================================
+
+class DecisionTree {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.tree = null;
+    this.buildSteps = [];
+  }
+
+  fit(points, taskType, maxDepth, minSamples) {
+    if (points.length < 2) throw new Error('Need at least 2 points!');
+
+    this.buildSteps = [];
+    this.buildSteps.push(`<strong>Starting Decision Tree Build</strong><br>Task: ${taskType}, Max Depth: ${maxDepth}, Min Samples: ${minSamples}<br>Total Points: ${points.length}<br><br>`);
+
+    const tree = this.buildTree(points, taskType, 0, maxDepth, minSamples, 'Root');
+
+    this.buildSteps.push(`<br><strong>✓ Tree Building Complete!</strong><br>Total Nodes: ${this.countNodes(tree)}<br>Tree Depth: ${this.getTreeDepth(tree)}`);
+
+    return { fitted: true, tree: tree, taskType: taskType, buildSteps: this.buildSteps };
+  }
+
+  getTreeDepth(node) {
+    if (!node || node.type === 'leaf') return 0;
+    return 1 + Math.max(this.getTreeDepth(node.left), this.getTreeDepth(node.right));
+  }
+
+  countNodes(node) {
+    if (!node) return 0;
+    if (node.type === 'leaf') return 1;
+    return 1 + this.countNodes(node.left) + this.countNodes(node.right);
+  }
+
+  buildTree(points, taskType, depth, maxDepth, minSamples, nodeName = 'Node') {
+    const indent = '&nbsp;'.repeat(depth * 2);
+    this.buildSteps.push(`${indent}<strong>${nodeName}</strong> (Depth ${depth}, Samples: ${points.length})<br>`);
+
+    // Base cases
+    if (depth >= maxDepth) {
+      this.buildSteps.push(`${indent}→ Max depth reached. Creating leaf.<br>`);
+      const leaf = this.createLeaf(points, taskType);
+      this.buildSteps.push(`${indent}→ Leaf value: ${leaf.value.toFixed(4)}<br><br>`);
+      return leaf;
+    }
+
+    if (points.length < minSamples) {
+      this.buildSteps.push(`${indent}→ Not enough samples. Creating leaf.<br>`);
+      const leaf = this.createLeaf(points, taskType);
+      this.buildSteps.push(`${indent}→ Leaf value: ${leaf.value.toFixed(4)}<br><br>`);
+      return leaf;
+    }
+
+    // Find best split
+    const bestSplit = this.findBestSplit(points, taskType);
+
+    if (!bestSplit || bestSplit.gain <= 0) {
+      this.buildSteps.push(`${indent}→ No beneficial split found. Creating leaf.<br>`);
+      const leaf = this.createLeaf(points, taskType);
+      this.buildSteps.push(`${indent}→ Leaf value: ${leaf.value.toFixed(4)}<br><br>`);
+      return leaf;
+    }
+
+    // Split the data
+    const leftPoints = points.filter(p => p.x <= bestSplit.threshold);
+    const rightPoints = points.filter(p => p.x > bestSplit.threshold);
+
+    if (leftPoints.length === 0 || rightPoints.length === 0) {
+      this.buildSteps.push(`${indent}→ Empty split. Creating leaf.<br>`);
+      const leaf = this.createLeaf(points, taskType);
+      this.buildSteps.push(`${indent}→ Leaf value: ${leaf.value.toFixed(4)}<br><br>`);
+      return leaf;
+    }
+
+    this.buildSteps.push(`${indent}→ <strong>Best Split:</strong> x ≤ ${bestSplit.threshold.toFixed(4)}, Gain: ${bestSplit.gain.toFixed(6)}<br>`);
+    this.buildSteps.push(`${indent}→ Left: ${leftPoints.length} samples, Right: ${rightPoints.length} samples<br><br>`);
+
+    // Recursively build subtrees
+    return {
+      type: 'split',
+      feature: 'x',
+      threshold: bestSplit.threshold,
+      gain: bestSplit.gain,
+      samples: points.length,
+      left: this.buildTree(leftPoints, taskType, depth + 1, maxDepth, minSamples, `${nodeName} → Left`),
+      right: this.buildTree(rightPoints, taskType, depth + 1, maxDepth, minSamples, `${nodeName} → Right`)
+    };
+  }
+
+  createLeaf(points, taskType) {
+    if (taskType === 'regression') {
+      const value = points.reduce((sum, p) => sum + (p.y || 0), 0) / points.length;
+      return { type: 'leaf', value: value, samples: points.length };
+    } else {
+      // Classification: majority class
+      const counts = {};
+      points.forEach(p => {
+        const label = p.label || 0;
+        counts[label] = (counts[label] || 0) + 1;
+      });
+      const majorityClass = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+      const prob = counts[majorityClass] / points.length;
+      return { type: 'leaf', value: parseInt(majorityClass), probability: prob, samples: points.length, counts: counts };
+    }
+  }
+
+  findBestSplit(points, taskType) {
+    let bestGain = -Infinity;
+    let bestThreshold = null;
+
+    // Get unique x values and try midpoints
+    const xValues = [...new Set(points.map(p => p.x))].sort((a, b) => a - b);
+
+    for (let i = 0; i < xValues.length - 1; i++) {
+      const threshold = (xValues[i] + xValues[i + 1]) / 2;
+      const leftPoints = points.filter(p => p.x <= threshold);
+      const rightPoints = points.filter(p => p.x > threshold);
+
+      if (leftPoints.length === 0 || rightPoints.length === 0) continue;
+
+      const gain = this.calculateGain(points, leftPoints, rightPoints, taskType);
+
+      if (gain > bestGain) {
+        bestGain = gain;
+        bestThreshold = threshold;
+      }
+    }
+
+    return bestThreshold !== null ? { threshold: bestThreshold, gain: bestGain } : null;
+  }
+
+  calculateGain(parent, left, right, taskType) {
+    const parentImpurity = taskType === 'regression'
+      ? this.calculateMSE(parent)
+      : this.calculateGini(parent);
+
+    const leftImpurity = taskType === 'regression'
+      ? this.calculateMSE(left)
+      : this.calculateGini(left);
+
+    const rightImpurity = taskType === 'regression'
+      ? this.calculateMSE(right)
+      : this.calculateGini(right);
+
+    const n = parent.length;
+    const nL = left.length;
+    const nR = right.length;
+
+    const weightedImpurity = (nL / n) * leftImpurity + (nR / n) * rightImpurity;
+
+    return parentImpurity - weightedImpurity;
+  }
+
+  calculateMSE(points) {
+    if (points.length === 0) return 0;
+    const mean = points.reduce((sum, p) => sum + (p.y || 0), 0) / points.length;
+    return points.reduce((sum, p) => sum + Math.pow((p.y || 0) - mean, 2), 0) / points.length;
+  }
+
+  calculateGini(points) {
+    if (points.length === 0) return 0;
+
+    const counts = {};
+    points.forEach(p => {
+      const label = p.label || 0;
+      counts[label] = (counts[label] || 0) + 1;
+    });
+
+    let gini = 1;
+    for (const label in counts) {
+      const prob = counts[label] / points.length;
+      gini -= prob * prob;
+    }
+
+    return gini;
+  }
+
+  predict(point, tree) {
+    if (!tree || tree.type === 'leaf') {
+      return tree ? tree.value : 0;
+    }
+
+    if (point.x <= tree.threshold) {
+      return this.predict(point, tree.left);
+    } else {
+      return this.predict(point, tree.right);
+    }
+  }
+
+  updateDisplay(points, model, taskType) {
+    if (!model.fitted) return;
+
+    if (taskType === 'regression') {
+      const mse = this.calculateTestMSE(points, model.tree);
+      const r2 = this.calculateTestR2(points, model.tree);
+      const mae = this.calculateTestMAE(points, model.tree);
+
+      document.getElementById('dt-mse').textContent = mse.toFixed(6);
+      document.getElementById('dt-r2').textContent = r2.toFixed(6);
+      document.getElementById('dt-mae').textContent = mae.toFixed(6);
+    } else {
+      const metrics = this.calculateClassificationMetrics(points, model.tree);
+
+      document.getElementById('dt-accuracy').textContent = metrics.accuracy.toFixed(4);
+      document.getElementById('dt-precision').textContent = metrics.precision.toFixed(4);
+      document.getElementById('dt-recall').textContent = metrics.recall.toFixed(4);
+      document.getElementById('dt-f1').textContent = metrics.f1.toFixed(4);
+    }
+
+    // Display tree structure
+    this.displayTree(model.tree);
+  }
+
+  calculateTestMSE(points, tree) {
+    if (points.length === 0) return 0;
+    const errors = points.map(p => Math.pow(p.y - this.predict(p, tree), 2));
+    return errors.reduce((a, b) => a + b, 0) / points.length;
+  }
+
+  calculateTestMAE(points, tree) {
+    if (points.length === 0) return 0;
+    const errors = points.map(p => Math.abs(p.y - this.predict(p, tree)));
+    return errors.reduce((a, b) => a + b, 0) / points.length;
+  }
+
+  calculateTestR2(points, tree) {
+    if (points.length === 0) return 0;
+    const yMean = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+    const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
+    const ssRes = points.reduce((sum, p) => sum + Math.pow(p.y - this.predict(p, tree), 2), 0);
+    return 1 - (ssRes / ssTot);
+  }
+
+  calculateClassificationMetrics(points, tree) {
+    let tp = 0, fp = 0, tn = 0, fn = 0;
+
+    points.forEach(p => {
+      const pred = this.predict(p, tree);
+      const actual = p.label || 0;
+
+      if (actual === 1 && pred === 1) tp++;
+      else if (actual === 0 && pred === 1) fp++;
+      else if (actual === 0 && pred === 0) tn++;
+      else if (actual === 1 && pred === 0) fn++;
+    });
+
+    const accuracy = (tp + tn) / points.length;
+    const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+    const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+    const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+
+    return { accuracy, precision, recall, f1 };
+  }
+
+  displayTree(tree, depth = 0) {
+    const display = document.getElementById('dt-tree-display');
+    display.innerHTML = this.renderTreeHTML(tree, depth);
+  }
+
+  renderTreeHTML(node, depth) {
+    const indent = '&nbsp;'.repeat(depth * 4);
+
+    if (node.type === 'leaf') {
+      return `${indent}├─ <strong>Leaf:</strong> value=${node.value.toFixed(4)}, samples=${node.samples}<br>`;
+    } else {
+      let html = `${indent}├─ <strong>Split:</strong> x ≤ ${node.threshold.toFixed(4)} (gain=${node.gain.toFixed(4)}, samples=${node.samples})<br>`;
+      html += this.renderTreeHTML(node.left, depth + 1);
+      html += this.renderTreeHTML(node.right, depth + 1);
+      return html;
+    }
+  }
+}
+
+// ============================================================================
+// RANDOM FOREST
+// ============================================================================
+
+class RandomForest {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.trees = [];
+    this.oobIndices = [];
+    this.buildSteps = [];
+  }
+
+  fit(points, taskType, nTrees, maxDepth, minSamples, maxFeatures) {
+    if (points.length < 2) throw new Error('Need at least 2 points!');
+
+    this.buildSteps = [];
+    this.buildSteps.push(`<strong>Starting Random Forest Build</strong><br>Task: ${taskType}, Trees: ${nTrees}, Max Depth: ${maxDepth}<br>Total Points: ${points.length}<br><br>`);
+
+    const trees = [];
+    const oobIndices = [];
+
+    for (let i = 0; i < nTrees; i++) {
+      this.buildSteps.push(`<strong>Tree ${i + 1}/${nTrees}:</strong><br>`);
+
+      // Bootstrap sample
+      const { bootstrap, oob } = this.bootstrapSample(points);
+      this.buildSteps.push(`→ Bootstrap: ${bootstrap.length} samples (${oob.length} OOB)<br>`);
+
+      // Build tree on bootstrap sample
+      const dt = new DecisionTree();
+      dt.buildSteps = []; // Disable DT's verbose output for RF
+      const treeModel = dt.fit(bootstrap, taskType, maxDepth, minSamples);
+
+      this.buildSteps.push(`→ Tree depth: ${dt.getTreeDepth(treeModel.tree)}, Nodes: ${dt.countNodes(treeModel.tree)}<br><br>`);
+
+      trees.push(treeModel.tree);
+      oobIndices.push(oob);
+    }
+
+    this.buildSteps.push(`<br><strong>✓ Forest Complete!</strong><br>Total Trees: ${trees.length}<br>Average Depth: ${(trees.reduce((sum, t) => sum + (new DecisionTree()).getTreeDepth(t), 0) / trees.length).toFixed(1)}`);
+
+    return { fitted: true, trees: trees, oobIndices: oobIndices, taskType: taskType, buildSteps: this.buildSteps };
+  }
+
+  bootstrapSample(points) {
+    const bootstrap = [];
+    const oob = [];
+    const indices = new Set();
+
+    for (let i = 0; i < points.length; i++) {
+      const idx = Math.floor(Math.random() * points.length);
+      bootstrap.push(points[idx]);
+      indices.add(idx);
+    }
+
+    for (let i = 0; i < points.length; i++) {
+      if (!indices.has(i)) {
+        oob.push(i);
+      }
+    }
+
+    return { bootstrap, oob };
+  }
+
+  predict(point, trees, taskType) {
+    if (!trees || trees.length === 0) return 0;
+
+    const dt = new DecisionTree();
+    const predictions = trees.map(tree => dt.predict(point, tree));
+
+    if (taskType === 'regression') {
+      // Average predictions
+      return predictions.reduce((a, b) => a + b, 0) / predictions.length;
+    } else {
+      // Majority vote
+      const counts = {};
+      predictions.forEach(pred => {
+        counts[pred] = (counts[pred] || 0) + 1;
+      });
+      return parseInt(Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b));
+    }
+  }
+
+  calculateOOBError(points, trees, oobIndices, taskType) {
+    if (trees.length === 0) return 0;
+
+    let totalError = 0;
+    let count = 0;
+
+    for (let i = 0; i < points.length; i++) {
+      // Find trees where this point was OOB
+      const oobTrees = [];
+      for (let t = 0; t < trees.length; t++) {
+        if (oobIndices[t].includes(i)) {
+          oobTrees.push(trees[t]);
+        }
+      }
+
+      if (oobTrees.length === 0) continue;
+
+      const prediction = this.predict(points[i], oobTrees, taskType);
+
+      if (taskType === 'regression') {
+        totalError += Math.pow(points[i].y - prediction, 2);
+      } else {
+        totalError += (points[i].label !== prediction) ? 1 : 0;
+      }
+      count++;
+    }
+
+    return count > 0 ? totalError / count : 0;
+  }
+
+  updateDisplay(points, model, taskType) {
+    if (!model.fitted) return;
+
+    const dt = new DecisionTree();
+
+    if (taskType === 'regression') {
+      const predictions = points.map(p => this.predict(p, model.trees, taskType));
+      const mse = points.reduce((sum, p, i) => sum + Math.pow(p.y - predictions[i], 2), 0) / points.length;
+      const yMean = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+      const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
+      const ssRes = points.reduce((sum, p, i) => sum + Math.pow(p.y - predictions[i], 2), 0);
+      const r2 = 1 - (ssRes / ssTot);
+      const mae = points.reduce((sum, p, i) => sum + Math.abs(p.y - predictions[i]), 0) / points.length;
+      const oobError = this.calculateOOBError(points, model.trees, model.oobIndices, taskType);
+
+      document.getElementById('rf-mse').textContent = mse.toFixed(6);
+      document.getElementById('rf-r2').textContent = r2.toFixed(6);
+      document.getElementById('rf-mae').textContent = mae.toFixed(6);
+      document.getElementById('rf-oob').textContent = oobError.toFixed(6);
+    } else {
+      let tp = 0, fp = 0, tn = 0, fn = 0;
+
+      points.forEach(p => {
+        const pred = this.predict(p, model.trees, taskType);
+        const actual = p.label || 0;
+
+        if (actual === 1 && pred === 1) tp++;
+        else if (actual === 0 && pred === 1) fp++;
+        else if (actual === 0 && pred === 0) tn++;
+        else if (actual === 1 && pred === 0) fn++;
+      });
+
+      const accuracy = (tp + tn) / points.length;
+      const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+      const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+      const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+      const oobScore = 1 - this.calculateOOBError(points, model.trees, model.oobIndices, taskType);
+
+      document.getElementById('rf-accuracy').textContent = accuracy.toFixed(4);
+      document.getElementById('rf-precision').textContent = precision.toFixed(4);
+      document.getElementById('rf-recall').textContent = recall.toFixed(4);
+      document.getElementById('rf-f1').textContent = f1.toFixed(4);
+      document.getElementById('rf-oob-cls').textContent = oobScore.toFixed(4);
+    }
+
+    // Display forest summary
+    document.getElementById('rf-tree-count').textContent = model.trees.length;
+    const display = document.getElementById('rf-trees-display');
+    display.innerHTML = `<p><strong>Forest contains ${model.trees.length} trees</strong></p>` +
+      `<p>Task: ${taskType}</p>` +
+      `<p>Average tree depth: ${this.calculateAverageDepth(model.trees).toFixed(1)}</p>`;
+  }
+
+  calculateAverageDepth(trees) {
+    const depths = trees.map(tree => this.getTreeDepth(tree));
+    return depths.reduce((a, b) => a + b, 0) / depths.length;
+  }
+
+  getTreeDepth(node) {
+    if (!node || node.type === 'leaf') return 0;
+    return 1 + Math.max(this.getTreeDepth(node.left), this.getTreeDepth(node.right));
+  }
+}
+
+// ============================================================================
+// XGBOOST
+// ============================================================================
+
+class XGBoost {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.autoRunning = false;
+    this.lossHistory = [];
+  }
+
+  startAutoRun() {
+    this.autoRunning = true;
+  }
+
+  stopAutoRun() {
+    this.autoRunning = false;
+  }
+
+  initialize(points, taskType) {
+    if (points.length < 2) throw new Error('Add at least 2 points first!');
+
+    // Initialize with mean (regression) or 0.5 (classification)
+    let basePrediction;
+    if (taskType === 'regression') {
+      basePrediction = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+    } else {
+      // For classification, start with log(odds)
+      const positives = points.filter(p => (p.label || 0) === 1).length;
+      const negatives = points.length - positives;
+      basePrediction = Math.log((positives + 1) / (negatives + 1));
+    }
+
+    this.lossHistory = [];
+
+    return {
+      fitted: true,
+      trees: [],
+      basePrediction: basePrediction,
+      iteration: 0,
+      taskType: taskType,
+      lossHistory: []
+    };
+  }
+
+  sigmoid(z) {
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  executeBoost(points, model, taskType, learningRate, maxDepth, lambda, gamma) {
+    const stepDisplay = [];
+    stepDisplay.push(`<strong>Boosting Round ${model.iteration + 1}</strong><br><br>`);
+
+    // Calculate current predictions
+    const predictions = points.map(p => this.predictRaw(p, model));
+    stepDisplay.push(`<strong>Step 1: Current Predictions</strong><br>`);
+    stepDisplay.push(`→ Base: ${model.basePrediction.toFixed(4)}<br>`);
+    if (model.trees.length > 0) {
+      stepDisplay.push(`→ + Contributions from ${model.trees.length} tree(s)<br>`);
+    }
+    stepDisplay.push(`<br>`);
+
+    // Calculate gradients
+    stepDisplay.push(`<strong>Step 2: Calculate Gradients & Hessians</strong><br>`);
+    const gradients = points.map((p, i) => {
+      if (taskType === 'regression') {
+        return predictions[i] - p.y; // MSE gradient
+      } else {
+        const prob = this.sigmoid(predictions[i]);
+        return prob - (p.label || 0); // Log loss gradient
+      }
+    });
+
+    // Calculate hessians
+    const hessians = points.map((p, i) => {
+      if (taskType === 'regression') {
+        return 1; // MSE hessian is constant
+      } else {
+        const prob = this.sigmoid(predictions[i]);
+        return prob * (1 - prob); // Log loss hessian
+      }
+    });
+
+    const avgGrad = gradients.reduce((a, b) => a + b, 0) / gradients.length;
+    const avgHess = hessians.reduce((a, b) => a + b, 0) / hessians.length;
+    stepDisplay.push(`→ Avg Gradient: ${avgGrad.toFixed(6)}<br>`);
+    stepDisplay.push(`→ Avg Hessian: ${avgHess.toFixed(6)}<br>`);
+    stepDisplay.push(`<br>`);
+
+    // Build tree on gradients (with regularization)
+    stepDisplay.push(`<strong>Step 3: Build Tree on Gradients</strong><br>`);
+    stepDisplay.push(`→ Max Depth: ${maxDepth}, λ: ${lambda}, γ: ${gamma}<br>`);
+    const tree = this.buildBoostTree(points, gradients, hessians, 0, maxDepth, lambda, gamma);
+    stepDisplay.push(`→ Tree built with regularization<br>`);
+    stepDisplay.push(`<br>`);
+
+    // Add tree to model
+    model.trees.push(tree);
+    model.iteration++;
+
+    // Calculate loss
+    stepDisplay.push(`<strong>Step 4: Update Model & Calculate Loss</strong><br>`);
+    const loss = this.calculateLoss(points, model, taskType);
+    model.lossHistory = model.lossHistory || [];
+    model.lossHistory.push(loss);
+    this.lossHistory = model.lossHistory;
+
+    stepDisplay.push(`→ New Loss: ${loss.toFixed(6)}<br>`);
+    if (model.lossHistory.length > 1) {
+      const prevLoss = model.lossHistory[model.lossHistory.length - 2];
+      const improvement = prevLoss - loss;
+      stepDisplay.push(`→ Improvement: ${improvement.toFixed(6)}<br>`);
+    }
+
+    model.currentStepDisplay = stepDisplay.join('');
+
+    return model;
+  }
+
+  buildBoostTree(points, gradients, hessians, depth, maxDepth, lambda, gamma) {
+    // Base case: max depth or no points
+    if (depth >= maxDepth || points.length === 0) {
+      return this.createBoostLeaf(gradients, hessians, lambda);
+    }
+
+    // Find best split
+    const bestSplit = this.findBestBoostSplit(points, gradients, hessians, lambda, gamma);
+
+    if (!bestSplit || bestSplit.gain <= gamma) {
+      return this.createBoostLeaf(gradients, hessians, lambda);
+    }
+
+    // Split the data
+    const leftIndices = [];
+    const rightIndices = [];
+    points.forEach((p, i) => {
+      if (p.x <= bestSplit.threshold) {
+        leftIndices.push(i);
+      } else {
+        rightIndices.push(i);
+      }
+    });
+
+    if (leftIndices.length === 0 || rightIndices.length === 0) {
+      return this.createBoostLeaf(gradients, hessians, lambda);
+    }
+
+    const leftPoints = leftIndices.map(i => points[i]);
+    const leftGradients = leftIndices.map(i => gradients[i]);
+    const leftHessians = leftIndices.map(i => hessians[i]);
+
+    const rightPoints = rightIndices.map(i => points[i]);
+    const rightGradients = rightIndices.map(i => gradients[i]);
+    const rightHessians = rightIndices.map(i => hessians[i]);
+
+    return {
+      type: 'split',
+      threshold: bestSplit.threshold,
+      gain: bestSplit.gain,
+      left: this.buildBoostTree(leftPoints, leftGradients, leftHessians, depth + 1, maxDepth, lambda, gamma),
+      right: this.buildBoostTree(rightPoints, rightGradients, rightHessians, depth + 1, maxDepth, lambda, gamma)
+    };
+  }
+
+  createBoostLeaf(gradients, hessians, lambda) {
+    const G = gradients.reduce((a, b) => a + b, 0);
+    const H = hessians.reduce((a, b) => a + b, 0);
+    const weight = -G / (H + lambda);
+    return { type: 'leaf', weight: weight };
+  }
+
+  findBestBoostSplit(points, gradients, hessians, lambda, gamma) {
+    let bestGain = -Infinity;
+    let bestThreshold = null;
+
+    const xValues = [...new Set(points.map(p => p.x))].sort((a, b) => a - b);
+
+    for (let i = 0; i < xValues.length - 1; i++) {
+      const threshold = (xValues[i] + xValues[i + 1]) / 2;
+
+      const leftIndices = [];
+      const rightIndices = [];
+      points.forEach((p, idx) => {
+        if (p.x <= threshold) {
+          leftIndices.push(idx);
+        } else {
+          rightIndices.push(idx);
+        }
+      });
+
+      if (leftIndices.length === 0 || rightIndices.length === 0) continue;
+
+      const GL = leftIndices.reduce((sum, idx) => sum + gradients[idx], 0);
+      const HL = leftIndices.reduce((sum, idx) => sum + hessians[idx], 0);
+      const GR = rightIndices.reduce((sum, idx) => sum + gradients[idx], 0);
+      const HR = rightIndices.reduce((sum, idx) => sum + hessians[idx], 0);
+      const G = GL + GR;
+      const H = HL + HR;
+
+      const gain = 0.5 * (
+        (GL * GL) / (HL + lambda) +
+        (GR * GR) / (HR + lambda) -
+        (G * G) / (H + lambda)
+      );
+
+      if (gain > bestGain) {
+        bestGain = gain;
+        bestThreshold = threshold;
+      }
+    }
+
+    return bestThreshold !== null ? { threshold: bestThreshold, gain: bestGain } : null;
+  }
+
+  predictTree(point, tree) {
+    if (!tree || tree.type === 'leaf') {
+      return tree ? tree.weight : 0;
+    }
+
+    if (point.x <= tree.threshold) {
+      return this.predictTree(point, tree.left);
+    } else {
+      return this.predictTree(point, tree.right);
+    }
+  }
+
+  predictRaw(point, model) {
+    let pred = model.basePrediction;
+    for (const tree of model.trees) {
+      pred += this.predictTree(point, tree);
+    }
+    return pred;
+  }
+
+  predict(point, model, taskType) {
+    const raw = this.predictRaw(point, model);
+    if (taskType === 'regression') {
+      return raw;
+    } else {
+      return this.sigmoid(raw) >= 0.5 ? 1 : 0;
+    }
+  }
+
+  calculateLoss(points, model, taskType) {
+    if (taskType === 'regression') {
+      const mse = points.reduce((sum, p) => {
+        const pred = this.predictRaw(p, model);
+        return sum + Math.pow(p.y - pred, 2);
+      }, 0) / points.length;
+      return mse;
+    } else {
+      const logLoss = points.reduce((sum, p) => {
+        const raw = this.predictRaw(p, model);
+        const prob = this.sigmoid(raw);
+        const label = p.label || 0;
+        return sum - (label * Math.log(prob + 1e-15) + (1 - label) * Math.log(1 - prob + 1e-15));
+      }, 0) / points.length;
+      return logLoss;
+    }
+  }
+
+  updateDisplay(points, model, taskType) {
+    if (!model.fitted) return;
+
+    if (taskType === 'regression') {
+      const predictions = points.map(p => this.predictRaw(p, model));
+      const mse = points.reduce((sum, p, i) => sum + Math.pow(p.y - predictions[i], 2), 0) / points.length;
+      const yMean = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+      const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
+      const ssRes = points.reduce((sum, p, i) => sum + Math.pow(p.y - predictions[i], 2), 0);
+      const r2 = 1 - (ssRes / ssTot);
+      const mae = points.reduce((sum, p, i) => sum + Math.abs(p.y - predictions[i]), 0) / points.length;
+      const rmse = Math.sqrt(mse);
+
+      document.getElementById('xgb-mse').textContent = mse.toFixed(6);
+      document.getElementById('xgb-r2').textContent = r2.toFixed(6);
+      document.getElementById('xgb-mae').textContent = mae.toFixed(6);
+      document.getElementById('xgb-rmse').textContent = rmse.toFixed(6);
+    } else {
+      let tp = 0, fp = 0, tn = 0, fn = 0;
+
+      points.forEach(p => {
+        const pred = this.predict(p, model, taskType);
+        const actual = p.label || 0;
+
+        if (actual === 1 && pred === 1) tp++;
+        else if (actual === 0 && pred === 1) fp++;
+        else if (actual === 0 && pred === 0) tn++;
+        else if (actual === 1 && pred === 0) fn++;
+      });
+
+      const accuracy = (tp + tn) / points.length;
+      const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+      const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+      const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+      const logLoss = this.calculateLoss(points, model, taskType);
+
+      document.getElementById('xgb-accuracy').textContent = accuracy.toFixed(4);
+      document.getElementById('xgb-precision').textContent = precision.toFixed(4);
+      document.getElementById('xgb-recall').textContent = recall.toFixed(4);
+      document.getElementById('xgb-f1').textContent = f1.toFixed(4);
+      document.getElementById('xgb-logloss').textContent = logLoss.toFixed(6);
+    }
+
+    // Display current tree
+    if (model.trees.length > 0) {
+      document.getElementById('xgb-current-tree-iter').textContent = model.iteration;
+      document.getElementById('xgb-tree-viz').style.display = 'block';
+      const display = document.getElementById('xgb-tree-display');
+      const lastTree = model.trees[model.trees.length - 1];
+      display.innerHTML = this.renderTreeHTML(lastTree, 0);
+    }
+  }
+
+  renderTreeHTML(node, depth) {
+    const indent = '&nbsp;'.repeat(depth * 4);
+
+    if (node.type === 'leaf') {
+      return `${indent}├─ <strong>Leaf:</strong> weight=${node.weight.toFixed(4)}<br>`;
+    } else {
+      let html = `${indent}├─ <strong>Split:</strong> x ≤ ${node.threshold.toFixed(4)} (gain=${node.gain.toFixed(4)})<br>`;
+      html += this.renderTreeHTML(node.left, depth + 1);
+      html += this.renderTreeHTML(node.right, depth + 1);
+      return html;
+    }
+  }
+}
+
 // Export classes to global scope
 window.OLSSolver = OLSSolver;
 window.GradientDescent = GradientDescent;
 window.ManualCalculator = ManualCalculator;
 window.LogisticRegression = LogisticRegression;
 window.StatisticsCalculator = StatisticsCalculator;
+window.DecisionTree = DecisionTree;
+window.RandomForest = RandomForest;
+window.XGBoost = XGBoost;

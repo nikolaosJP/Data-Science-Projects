@@ -38,6 +38,8 @@ th{background:#f8fafc;font-weight:600}
 .subtab-content.active{display:block}
 .regtab-content{display:none}
 .regtab-content.active{display:block}
+.nltab-content{display:none}
+.nltab-content.active{display:block}
 textarea{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:4px;font-family:inherit;resize:vertical;margin:4px 0}
 label{display:block;margin:8px 0;font-weight:500}
 h4{margin:16px 0 8px;color:#1e293b}

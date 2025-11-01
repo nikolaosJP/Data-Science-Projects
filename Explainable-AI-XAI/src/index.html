@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Linear Regression Learning Platform</title>
+<title>Machine Learning & XAI Platform</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -11,12 +11,13 @@
 <!-- Your existing HTML content stays the same -->
 <div class="container">
   <div class="header">
-    <h1>Linear Regression Learning Platform</h1>
+    <h1>Machine Learning & XAI Platform</h1>
     <div class="hint">Click to add • Drag to move • Right-click to delete</div>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="regression">Regression</div>
+    <div class="tab active" data-tab="linear">Linear Models</div>
+    <div class="tab" data-tab="nonlinear">Nonlinear Models</div>
     <div class="tab" data-tab="stats">Statistics</div>
   </div>
 
@@ -29,8 +30,8 @@
     </div>
   </div>
 
-  <!-- Regression Tab -->
-  <div class="tab-content active" id="tab-regression">
+  <!-- Linear Models Tab -->
+  <div class="tab-content active" id="tab-linear">
     <div class="panel">
       <div class="tabs" style="margin-bottom: 16px;">
         <div class="tab active" data-regtab="ols">OLS</div>
@@ -313,6 +314,236 @@
       </div>
     </div>
   </div>
+    </div>
+  </div>
+
+  <!-- Nonlinear Models Tab -->
+  <div class="tab-content" id="tab-nonlinear">
+    <div class="panel">
+      <div class="tabs" style="margin-bottom: 16px;">
+        <div class="tab active" data-nltab="dt">Decision Tree</div>
+        <div class="tab" data-nltab="rf">Random Forest</div>
+        <div class="tab" data-nltab="xgb">XGBoost</div>
+      </div>
+
+      <!-- Decision Tree Subtab -->
+      <div class="nltab-content active" id="nltab-dt">
+        <div class="main-grid">
+          <div class="panel">
+            <canvas id="plot-dt" width="800" height="500"></canvas>
+            <div class="hint">Select task type • Select class for classification • Click to add points • Right-click to delete</div>
+          </div>
+          <div>
+            <div class="panel">
+              <h3>Decision Tree</h3>
+              <div class="controls">
+                <span><strong>Task: </strong></span>
+                <button id="dt-task-reg" class="success">Regression</button>
+                <button id="dt-task-cls">Classification</button>
+              </div>
+              <div class="controls" id="dt-class-selector" style="display:none;">
+                <span><strong>Class: </strong></span>
+                <button id="dt-class0-btn" class="warning">Class 0</button>
+                <button id="dt-class1-btn">Class 1</button>
+              </div>
+              <label>Max Depth: <input id="dt-max-depth" type="number" min="1" max="10" value="3"></label>
+              <label>Min Samples Split: <input id="dt-min-samples" type="number" min="2" max="20" value="2"></label>
+              <div class="controls">
+                <button id="fit-dt" class="primary">Build Tree Step-by-Step</button>
+                <button id="reset-dt">Reset</button>
+              </div>
+
+              <div id="dt-steps" style="display:none">
+                <h4>Building Decision Tree</h4>
+                <div class="step-info">
+                  <div class="step-title">Build Process</div>
+                  <div id="dt-step-display" class="calculations"></div>
+                </div>
+              </div>
+
+              <div id="dt-metrics" style="display:none">
+                <h4>Model Metrics</h4>
+                <div class="values-grid" id="dt-reg-metrics">
+                  <div class="value-box"><strong>MSE</strong><div id="dt-mse">—</div></div>
+                  <div class="value-box"><strong>R²</strong><div id="dt-r2">—</div></div>
+                  <div class="value-box"><strong>MAE</strong><div id="dt-mae">—</div></div>
+                </div>
+                <div class="values-grid" id="dt-cls-metrics" style="display:none">
+                  <div class="value-box"><strong>Accuracy</strong><div id="dt-accuracy">—</div></div>
+                  <div class="value-box"><strong>Precision</strong><div id="dt-precision">—</div></div>
+                  <div class="value-box"><strong>Recall</strong><div id="dt-recall">—</div></div>
+                  <div class="value-box"><strong>F1 Score</strong><div id="dt-f1">—</div></div>
+                </div>
+              </div>
+
+              <div id="dt-tree-viz" style="display:none">
+                <h4>Tree Structure</h4>
+                <div class="calculations" style="background:#f8fafc;padding:12px;border-radius:4px;max-height:400px;overflow-y:auto;">
+                  <div id="dt-tree-display"></div>
+                </div>
+              </div>
+
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin-top:12px;">
+                <p style="margin:4px 0;font-size:12px;"><strong>Decision Tree:</strong> Recursively partitions the feature space using threshold splits. At each node, finds the best split that minimizes impurity (Gini for classification, MSE for regression). <strong>Criterion:</strong> Gini Impurity = 1 - Σ(pᵢ²) or MSE = (1/n)Σ(yᵢ - ŷ)²</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Random Forest Subtab -->
+      <div class="nltab-content" id="nltab-rf">
+        <div class="main-grid">
+          <div class="panel">
+            <canvas id="plot-rf" width="800" height="500"></canvas>
+            <div class="hint">Select task type • Select class for classification • Click to add points • Right-click to delete</div>
+          </div>
+          <div>
+            <div class="panel">
+              <h3>Random Forest</h3>
+              <div class="controls">
+                <span><strong>Task: </strong></span>
+                <button id="rf-task-reg" class="success">Regression</button>
+                <button id="rf-task-cls">Classification</button>
+              </div>
+              <div class="controls" id="rf-class-selector" style="display:none;">
+                <span><strong>Class: </strong></span>
+                <button id="rf-class0-btn" class="warning">Class 0</button>
+                <button id="rf-class1-btn">Class 1</button>
+              </div>
+              <label>Number of Trees: <input id="rf-n-trees" type="number" min="1" max="100" value="10"></label>
+              <label>Max Depth: <input id="rf-max-depth" type="number" min="1" max="10" value="3"></label>
+              <label>Min Samples Split: <input id="rf-min-samples" type="number" min="2" max="20" value="2"></label>
+              <label>Max Features: <input id="rf-max-features" type="number" min="1" max="10" value="1"></label>
+              <div class="controls">
+                <button id="fit-rf" class="primary">Build Forest</button>
+                <button id="reset-rf">Reset</button>
+              </div>
+
+              <div id="rf-steps" style="display:none">
+                <h4>Building Random Forest</h4>
+                <div class="step-info">
+                  <div class="step-title">Build Process</div>
+                  <div id="rf-step-display" class="calculations"></div>
+                </div>
+              </div>
+
+              <div id="rf-metrics" style="display:none">
+                <h4>Model Metrics</h4>
+                <div class="values-grid" id="rf-reg-metrics">
+                  <div class="value-box"><strong>MSE</strong><div id="rf-mse">—</div></div>
+                  <div class="value-box"><strong>R²</strong><div id="rf-r2">—</div></div>
+                  <div class="value-box"><strong>MAE</strong><div id="rf-mae">—</div></div>
+                  <div class="value-box"><strong>OOB Error</strong><div id="rf-oob">—</div></div>
+                </div>
+                <div class="values-grid" id="rf-cls-metrics" style="display:none">
+                  <div class="value-box"><strong>Accuracy</strong><div id="rf-accuracy">—</div></div>
+                  <div class="value-box"><strong>Precision</strong><div id="rf-precision">—</div></div>
+                  <div class="value-box"><strong>Recall</strong><div id="rf-recall">—</div></div>
+                  <div class="value-box"><strong>F1 Score</strong><div id="rf-f1">—</div></div>
+                  <div class="value-box"><strong>OOB Score</strong><div id="rf-oob-cls">—</div></div>
+                </div>
+              </div>
+
+              <div id="rf-trees-viz" style="display:none">
+                <h4>Forest Summary (Trees: <span id="rf-tree-count">0</span>)</h4>
+                <div class="calculations" style="background:#f8fafc;padding:12px;border-radius:4px;max-height:300px;overflow-y:auto;">
+                  <div id="rf-trees-display"></div>
+                </div>
+              </div>
+
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin-top:12px;">
+                <p style="margin:4px 0;font-size:12px;"><strong>Random Forest:</strong> Ensemble of decision trees trained on bootstrap samples with random feature subsets. Predictions are averaged (regression) or majority voted (classification). <strong>Bootstrap:</strong> Sample with replacement. <strong>Out-of-Bag (OOB):</strong> Validation using samples not in bootstrap.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- XGBoost Subtab -->
+      <div class="nltab-content" id="nltab-xgb">
+        <div class="main-grid">
+          <div class="panel">
+            <div class="gd-grid">
+              <div>
+                <div class="subtle">Data + Predictions</div>
+                <canvas id="plot-xgb" width="800" height="500"></canvas>
+                <div class="hint">Select task type • Select class for classification • Click to add points • Right-click to delete</div>
+              </div>
+              <div>
+                <div class="subtle">Loss History</div>
+                <canvas id="xgb-loss-plot" width="380" height="500"></canvas>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h3>XGBoost</h3>
+              <div class="controls">
+                <span><strong>Task: </strong></span>
+                <button id="xgb-task-reg" class="success">Regression</button>
+                <button id="xgb-task-cls">Classification</button>
+              </div>
+              <div class="controls" id="xgb-class-selector" style="display:none;">
+                <span><strong>Class: </strong></span>
+                <button id="xgb-class0-btn" class="warning">Class 0</button>
+                <button id="xgb-class1-btn">Class 1</button>
+              </div>
+              <div class="controls">
+                <button id="init-xgb" class="warning">Initialize</button>
+                <button id="next-boost-xgb" class="success" disabled>Next Boost</button>
+                <button id="auto-xgb">Auto</button>
+                <button id="reset-xgb">Reset</button>
+              </div>
+              <label>Learning Rate (η): <input id="xgb-lr" type="number" step="0.05" value="0.3" min="0.01" max="1"></label>
+              <label>Max Depth: <input id="xgb-max-depth" type="number" min="1" max="8" value="3"></label>
+              <label>Lambda (L2): <input id="xgb-lambda" type="number" step="0.1" value="1" min="0"></label>
+              <label>Min Split Loss (γ): <input id="xgb-gamma" type="number" step="0.1" value="0" min="0"></label>
+
+              <div class="iteration-info">
+                <strong>Iteration: </strong><span id="xgb-iteration">0</span> •
+                <strong>Trees: </strong><span id="xgb-tree-count">0</span>
+              </div>
+
+              <div id="xgb-steps" style="display:none">
+                <h4>Current Boosting Round</h4>
+                <div class="step-info">
+                  <div class="step-title">Iteration Details</div>
+                  <div id="xgb-step-display" class="calculations"></div>
+                </div>
+              </div>
+
+              <div id="xgb-metrics" style="display:none">
+                <h4>Model Metrics</h4>
+                <div class="values-grid" id="xgb-reg-metrics">
+                  <div class="value-box"><strong>MSE</strong><div id="xgb-mse">—</div></div>
+                  <div class="value-box"><strong>R²</strong><div id="xgb-r2">—</div></div>
+                  <div class="value-box"><strong>MAE</strong><div id="xgb-mae">—</div></div>
+                  <div class="value-box"><strong>RMSE</strong><div id="xgb-rmse">—</div></div>
+                </div>
+                <div class="values-grid" id="xgb-cls-metrics" style="display:none">
+                  <div class="value-box"><strong>Accuracy</strong><div id="xgb-accuracy">—</div></div>
+                  <div class="value-box"><strong>Precision</strong><div id="xgb-precision">—</div></div>
+                  <div class="value-box"><strong>Recall</strong><div id="xgb-recall">—</div></div>
+                  <div class="value-box"><strong>F1 Score</strong><div id="xgb-f1">—</div></div>
+                  <div class="value-box"><strong>Log Loss</strong><div id="xgb-logloss">—</div></div>
+                </div>
+              </div>
+
+              <div id="xgb-tree-viz" style="display:none">
+                <h4>Current Tree (Iteration <span id="xgb-current-tree-iter">0</span>)</h4>
+                <div class="calculations" style="background:#f8fafc;padding:12px;border-radius:4px;max-height:300px;overflow-y:auto;">
+                  <div id="xgb-tree-display"></div>
+                </div>
+              </div>
+
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin-top:12px;">
+                <p style="margin:4px 0;font-size:12px;"><strong>XGBoost:</strong> Gradient boosting that sequentially builds trees to correct residuals. Each tree is trained on gradients of the loss function. <strong>Update:</strong> F(x) ← F(x) + η·tree(x). <strong>Regularization:</strong> L2 penalty (λ) on leaf weights. <strong>Loss:</strong> MSE for regression, Log Loss for classification.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

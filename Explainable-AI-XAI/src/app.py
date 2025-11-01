@@ -14,5 +14,5 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    print("📊 Linear Regression Learning Platform running at http://127.0.0.1:5000")
+    print("📊 Machine Learning & XAI Platform running at http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=True)

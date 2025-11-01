@@ -77,7 +77,10 @@ class CanvasHandler {
       ols: document.getElementById('plot-ols'),
       gd: document.getElementById('plot-gd'),
       manual: document.getElementById('plot-manual'),
-      logistic: document.getElementById('plot-logistic')
+      logistic: document.getElementById('plot-logistic'),
+      dt: document.getElementById('plot-dt'),
+      rf: document.getElementById('plot-rf'),
+      xgb: document.getElementById('plot-xgb')
     };
     this.contexts = {};
     Object.keys(this.canvases).forEach(key => {
@@ -272,11 +275,138 @@ class CanvasHandler {
     }
   }
 
-  drawLossPlot(lossHistory) {
-    if (!this.lossCanvas) return;
-    const w = this.lossCanvas.width, h = this.lossCanvas.height;
-    this.lossCtx.fillStyle = '#fff';
-    this.lossCtx.fillRect(0, 0, w, h);
+  // Nonlinear Models Drawing
+  drawNL(model, points, models, taskType) {
+    const canvas = this.canvases[model];
+    if (!canvas) return;
+    const ctx = this.contexts[model];
+
+    // Clear
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid
+    this.drawGrid(ctx, canvas);
+    // Axes
+    this.drawAxes(ctx, canvas);
+
+    // Draw model predictions/boundaries
+    if (models[model].fitted) {
+      if (taskType === 'classification') {
+        this.drawNLDecisionBoundary(ctx, canvas, models[model], model);
+      } else {
+        this.drawNLPredictions(ctx, canvas, models[model], model);
+      }
+    }
+
+    // Points
+    if (taskType === 'classification') {
+      this.drawClassificationPoints(ctx, canvas, points);
+    } else {
+      this.drawPoints(ctx, canvas, points);
+    }
+  }
+
+  drawNLDecisionBoundary(ctx, canvas, model, modelType) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(AppUtils.margin, AppUtils.margin,
+             canvas.width - 2 * AppUtils.margin,
+             canvas.height - 2 * AppUtils.margin);
+    ctx.clip();
+
+    // Sample many x points and determine class
+    const steps = 200;
+    const dx = (AppUtils.domain.xmax - AppUtils.xmin) / steps;
+
+    // Get the predictor based on model type
+    let predictor;
+    if (modelType === 'dt') {
+      const dt = new DecisionTree();
+      predictor = (x) => dt.predict({x: x}, model.tree);
+    } else if (modelType === 'rf') {
+      const rf = new RandomForest();
+      predictor = (x) => rf.predict({x: x}, model.trees, 'classification');
+    } else if (modelType === 'xgb') {
+      const xgb = new XGBoost();
+      predictor = (x) => xgb.predict({x: x}, model, 'classification');
+    }
+
+    // Draw decision regions by sampling and finding boundaries
+    for (let i = 0; i < steps - 1; i++) {
+      const x1 = AppUtils.domain.xmin + i * dx;
+      const x2 = AppUtils.domain.xmin + (i + 1) * dx;
+
+      const class1 = predictor(x1);
+      const class2 = predictor(x2);
+
+      // If classes differ, there's a decision boundary between x1 and x2
+      if (class1 !== class2) {
+        const xBoundary = (x1 + x2) / 2;
+        const [px] = AppUtils.dataToPx(xBoundary, AppUtils.domain.ymin, canvas);
+
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(px, AppUtils.margin);
+        ctx.lineTo(px, canvas.height - AppUtils.margin);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  drawNLPredictions(ctx, canvas, model, modelType) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(AppUtils.margin, AppUtils.margin,
+             canvas.width - 2 * AppUtils.margin,
+             canvas.height - 2 * AppUtils.margin);
+    ctx.clip();
+
+    // Get the predictor based on model type
+    let predictor;
+    if (modelType === 'dt') {
+      const dt = new DecisionTree();
+      predictor = (x) => dt.predict({x: x}, model.tree);
+    } else if (modelType === 'rf') {
+      const rf = new RandomForest();
+      predictor = (x) => rf.predict({x: x}, model.trees, 'regression');
+    } else if (modelType === 'xgb') {
+      const xgb = new XGBoost();
+      predictor = (x) => xgb.predictRaw({x: x}, model);
+    }
+
+    // Draw the prediction curve
+    const steps = 200;
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    for (let i = 0; i <= steps; i++) {
+      const x = AppUtils.domain.xmin + (i / steps) * (AppUtils.domain.xmax - AppUtils.domain.xmin);
+      const y = predictor(x);
+      const [px, py] = AppUtils.dataToPx(x, y, canvas);
+
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  drawLossPlot(lossHistory, canvasId = 'loss-plot') {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
     if (lossHistory.length < 2) return;
 
     const marginL = 30, marginT = 20, marginR = 10, marginB = 30;
@@ -284,20 +414,20 @@ class CanvasHandler {
     const maxLoss = Math.max(...lossHistory);
     const range = maxLoss - minLoss || 1;
 
-    this.lossCtx.strokeStyle = '#e2e8f0';
-    this.lossCtx.lineWidth = 1;
-    this.lossCtx.strokeRect(marginL, marginT, w - marginL - marginR, h - marginT - marginB);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(marginL, marginT, w - marginL - marginR, h - marginT - marginB);
 
-    this.lossCtx.strokeStyle = '#dc2626';
-    this.lossCtx.lineWidth = 2;
-    this.lossCtx.beginPath();
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
     for (let i = 0; i < lossHistory.length; i++) {
       const x = marginL + i * (w - marginL - marginR) / (lossHistory.length - 1);
       const y = marginT + (1 - (lossHistory[i] - minLoss) / range) * (h - marginT - marginB);
-      if (i === 0) this.lossCtx.moveTo(x, y);
-      else this.lossCtx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
-    this.lossCtx.stroke();
+    ctx.stroke();
   }
 
   drawStatisticsPlot(canvasId, data, plotType) {
@@ -552,8 +682,13 @@ class CanvasHandler {
   }
 
   setupEvents() {
+    console.log('Setting up canvas events...', this.canvases);
     Object.values(this.canvases).forEach(canvas => {
-      if (!canvas) return;
+      if (!canvas) {
+        console.warn('Canvas element not found!');
+        return;
+      }
+      console.log('Attaching events to canvas:', canvas.id);
       canvas.addEventListener('contextmenu', e => e.preventDefault());
       canvas.addEventListener('mousedown', e => this.onMouseDown(e, canvas));
       canvas.addEventListener('mousemove', e => this.onMouseMove(e, canvas));
@@ -703,8 +838,15 @@ class CanvasHandler {
   }
 
   onMouseDown(e, canvas) {
+    console.log('Mouse down event triggered!', canvas.id, e.button);
+    if (!window.App) {
+      console.error('window.App is not defined!');
+      return;
+    }
+
     const [px, py] = this.getMousePos(e, canvas);
     const idx = this.findNearestPoint(px, py, canvas);
+    console.log('Click position:', px, py, 'Nearest point index:', idx);
 
     if (e.button === 2 && idx >= 0) {
       window.App.removePoint(idx);
@@ -714,10 +856,15 @@ class CanvasHandler {
       this.dragging = idx;
     } else {
       const [x, y] = AppUtils.pxToData(px, py, canvas);
-      // For logistic regression, assign class based on selected group
+      console.log('Adding new point at:', x, y);
+      // For classification (logistic regression or nonlinear models), assign class based on selected group
       const isLogistic = window.App && window.App.activeRegTab === 'logistic';
-      const label = isLogistic ? window.App.getActiveLogisticGroup() : undefined;
-      window.App.addPoint(isLogistic ? {x, y, label} : {x, y});
+      const isNLClassification = window.App && window.App.activeTab === 'nonlinear' &&
+        window.App.nlTaskType[window.App.activeNLTab] === 'classification';
+      const isClassification = isLogistic || isNLClassification;
+
+      const label = isClassification ? (isLogistic ? window.App.getActiveLogisticGroup() : window.App.activeNLClass) : undefined;
+      window.App.addPoint(isClassification ? {x, y, label} : {x, y});
     }
   }
 
@@ -726,8 +873,11 @@ class CanvasHandler {
     const [px, py] = this.getMousePos(e, canvas);
     const [x, y] = AppUtils.pxToData(px, py, canvas);
     const isLogistic = window.App && window.App.activeRegTab === 'logistic';
+    const isNLClassification = window.App && window.App.activeTab === 'nonlinear' &&
+      window.App.nlTaskType[window.App.activeNLTab] === 'classification';
+    const isClassification = isLogistic || isNLClassification;
     const currentPoint = window.App.getPoints()[this.dragging];
-    if (isLogistic && currentPoint) {
+    if (isClassification && currentPoint) {
       window.App.updatePoint(this.dragging, {x, y, label: currentPoint.label});
     } else {
       window.App.updatePoint(this.dragging, {x, y});
