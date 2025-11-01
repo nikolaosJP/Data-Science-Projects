@@ -851,6 +851,9 @@ class DecisionTree {
     const indent = '&nbsp;'.repeat(depth * 2);
     this.buildSteps.push(`${indent}<strong>${nodeName}</strong> (Depth ${depth}, Samples: ${points.length})<br>`);
 
+    // Calculate current node impurity
+    const nodeImpurity = taskType === 'regression' ? this.calculateMSE(points) : this.calculateGini(points);
+
     // Base cases
     if (depth >= maxDepth) {
       this.buildSteps.push(`${indent}→ Max depth reached. Creating leaf.<br>`);
@@ -866,8 +869,26 @@ class DecisionTree {
       return leaf;
     }
 
+    // Display impurity formula with calculation
+    if (taskType === 'regression') {
+      const mean = points.reduce((sum, p) => sum + (p.y || 0), 0) / points.length;
+      const formula = `MSE = \\frac{1}{n}\\sum_{i=1}^{n}(y_i - \\bar{y})^2`;
+      this.buildSteps.push(`${indent}→ <span class="formula-inline" data-formula="${formula}"></span><br>`);
+      this.buildSteps.push(`${indent}&nbsp;&nbsp;where \\(\\bar{y} = ${mean.toFixed(4)}\\), MSE = ${nodeImpurity.toFixed(6)}<br>`);
+    } else {
+      const counts = {};
+      points.forEach(p => counts[(p.label || 0)] = (counts[(p.label || 0)] || 0) + 1);
+      const probStrs = Object.keys(counts).map(k => {
+        const p = counts[k] / points.length;
+        return `p_${k}=${p.toFixed(3)}`;
+      }).join(', ');
+      const formula = `Gini = 1 - \\sum_{k} p_k^2`;
+      this.buildSteps.push(`${indent}→ <span class="formula-inline" data-formula="${formula}"></span><br>`);
+      this.buildSteps.push(`${indent}&nbsp;&nbsp;${probStrs}, Gini = ${nodeImpurity.toFixed(6)}<br>`);
+    }
+
     // Find best split
-    const bestSplit = this.findBestSplit(points, taskType);
+    const bestSplit = this.findBestSplitDetailed(points, taskType, indent);
 
     if (!bestSplit || bestSplit.gain <= 0) {
       this.buildSteps.push(`${indent}→ No beneficial split found. Creating leaf.<br>`);
@@ -887,7 +908,11 @@ class DecisionTree {
       return leaf;
     }
 
-    this.buildSteps.push(`${indent}→ <strong>Best Split:</strong> x ≤ ${bestSplit.threshold.toFixed(4)}, Gain: ${bestSplit.gain.toFixed(6)}<br>`);
+    // Show split gain calculation
+    const gainFormula = `Gain = I_{parent} - \\frac{n_L}{n}I_L - \\frac{n_R}{n}I_R`;
+    this.buildSteps.push(`${indent}→ <strong>Best Split:</strong> x ≤ ${bestSplit.threshold.toFixed(4)}<br>`);
+    this.buildSteps.push(`${indent}&nbsp;&nbsp;<span class="formula-inline" data-formula="${gainFormula}"></span><br>`);
+    this.buildSteps.push(`${indent}&nbsp;&nbsp;= ${nodeImpurity.toFixed(6)} - ${((leftPoints.length / points.length) * bestSplit.leftImpurity).toFixed(6)} - ${((rightPoints.length / points.length) * bestSplit.rightImpurity).toFixed(6)} = ${bestSplit.gain.toFixed(6)}<br>`);
     this.buildSteps.push(`${indent}→ Left: ${leftPoints.length} samples, Right: ${rightPoints.length} samples<br><br>`);
 
     // Recursively build subtrees
@@ -942,6 +967,52 @@ class DecisionTree {
     }
 
     return bestThreshold !== null ? { threshold: bestThreshold, gain: bestGain } : null;
+  }
+
+  findBestSplitDetailed(points, taskType, indent) {
+    let bestGain = -Infinity;
+    let bestThreshold = null;
+    let bestLeftImpurity = 0;
+    let bestRightImpurity = 0;
+
+    // Get unique x values and try midpoints
+    const xValues = [...new Set(points.map(p => p.x))].sort((a, b) => a - b);
+
+    this.buildSteps.push(`${indent}→ Evaluating ${xValues.length - 1} possible split points...<br>`);
+
+    for (let i = 0; i < xValues.length - 1; i++) {
+      const threshold = (xValues[i] + xValues[i + 1]) / 2;
+      const leftPoints = points.filter(p => p.x <= threshold);
+      const rightPoints = points.filter(p => p.x > threshold);
+
+      if (leftPoints.length === 0 || rightPoints.length === 0) continue;
+
+      const leftImpurity = taskType === 'regression'
+        ? this.calculateMSE(leftPoints)
+        : this.calculateGini(leftPoints);
+      const rightImpurity = taskType === 'regression'
+        ? this.calculateMSE(rightPoints)
+        : this.calculateGini(rightPoints);
+
+      const gain = this.calculateGain(points, leftPoints, rightPoints, taskType);
+
+      if (gain > bestGain) {
+        bestGain = gain;
+        bestThreshold = threshold;
+        bestLeftImpurity = leftImpurity;
+        bestRightImpurity = rightImpurity;
+      }
+    }
+
+    if (bestThreshold !== null) {
+      return {
+        threshold: bestThreshold,
+        gain: bestGain,
+        leftImpurity: bestLeftImpurity,
+        rightImpurity: bestRightImpurity
+      };
+    }
+    return null;
   }
 
   calculateGain(parent, left, right, taskType) {
@@ -1107,6 +1178,11 @@ class RandomForest {
     this.buildSteps = [];
     this.buildSteps.push(`<strong>Starting Random Forest Build</strong><br>Task: ${taskType}, Trees: ${nTrees}, Max Depth: ${maxDepth}<br>Total Points: ${points.length}<br><br>`);
 
+    // Explain bootstrap sampling
+    const bootstrapFormula = `\\text{Bootstrap: Sample } n \\text{ points with replacement from } D`;
+    this.buildSteps.push(`<span class="formula-inline" data-formula="${bootstrapFormula}"></span><br>`);
+    this.buildSteps.push(`→ Each tree trained on ~63.2% unique samples, remaining ~36.8% are Out-of-Bag (OOB)<br><br>`);
+
     const trees = [];
     const oobIndices = [];
 
@@ -1114,8 +1190,13 @@ class RandomForest {
       this.buildSteps.push(`<strong>Tree ${i + 1}/${nTrees}:</strong><br>`);
 
       // Bootstrap sample
-      const { bootstrap, oob } = this.bootstrapSample(points);
-      this.buildSteps.push(`→ Bootstrap: ${bootstrap.length} samples (${oob.length} OOB)<br>`);
+      const { bootstrap, oob, uniqueCount } = this.bootstrapSample(points);
+      const oobPct = (oob.length / points.length * 100).toFixed(1);
+      const uniquePct = (uniqueCount / points.length * 100).toFixed(1);
+
+      this.buildSteps.push(`→ Bootstrap sampling: drew ${bootstrap.length} samples<br>`);
+      this.buildSteps.push(`&nbsp;&nbsp;• Unique samples: ${uniqueCount} (${uniquePct}%)<br>`);
+      this.buildSteps.push(`&nbsp;&nbsp;• Out-of-Bag (OOB): ${oob.length} (${oobPct}%)<br>`);
 
       // Build tree on bootstrap sample
       const dt = new DecisionTree();
@@ -1128,7 +1209,21 @@ class RandomForest {
       oobIndices.push(oob);
     }
 
-    this.buildSteps.push(`<br><strong>✓ Forest Complete!</strong><br>Total Trees: ${trees.length}<br>Average Depth: ${(trees.reduce((sum, t) => sum + (new DecisionTree()).getTreeDepth(t), 0) / trees.length).toFixed(1)}`);
+    // Calculate and show OOB error with formula
+    const oobError = this.calculateOOBError(points, trees, oobIndices, taskType);
+    this.buildSteps.push(`<br><strong>✓ Forest Complete!</strong><br>Total Trees: ${trees.length}<br>Average Depth: ${(trees.reduce((sum, t) => sum + (new DecisionTree()).getTreeDepth(t), 0) / trees.length).toFixed(1)}<br><br>`);
+
+    if (taskType === 'regression') {
+      const oobFormula = `\\text{OOB-MSE} = \\frac{1}{|\\text{OOB}|}\\sum_{i \\in \\text{OOB}}(y_i - \\hat{y}_i)^2`;
+      this.buildSteps.push(`<strong>Out-of-Bag Validation:</strong><br>`);
+      this.buildSteps.push(`<span class="formula-inline" data-formula="${oobFormula}"></span><br>`);
+      this.buildSteps.push(`→ OOB Error (MSE): ${oobError.toFixed(6)}<br>`);
+    } else {
+      const oobFormula = `\\text{OOB-Error} = \\frac{1}{|\\text{OOB}|}\\sum_{i \\in \\text{OOB}} \\mathbb{1}(y_i \\neq \\hat{y}_i)`;
+      this.buildSteps.push(`<strong>Out-of-Bag Validation:</strong><br>`);
+      this.buildSteps.push(`<span class="formula-inline" data-formula="${oobFormula}"></span><br>`);
+      this.buildSteps.push(`→ OOB Error Rate: ${oobError.toFixed(4)}<br>`);
+    }
 
     return { fitted: true, trees: trees, oobIndices: oobIndices, taskType: taskType, buildSteps: this.buildSteps };
   }
@@ -1150,7 +1245,7 @@ class RandomForest {
       }
     }
 
-    return { bootstrap, oob };
+    return { bootstrap, oob, uniqueCount: indices.size };
   }
 
   predict(point, trees, taskType) {
@@ -1325,14 +1420,28 @@ class XGBoost {
     // Calculate current predictions
     const predictions = points.map(p => this.predictRaw(p, model));
     stepDisplay.push(`<strong>Step 1: Current Predictions</strong><br>`);
-    stepDisplay.push(`→ Base: ${model.basePrediction.toFixed(4)}<br>`);
+    const predFormula = `F_t(x) = F_0 + \\sum_{k=1}^{t} \\eta \\cdot f_k(x)`;
+    stepDisplay.push(`<span class="formula-inline" data-formula="${predFormula}"></span><br>`);
+    stepDisplay.push(`→ Base Prediction (F₀): ${model.basePrediction.toFixed(4)}<br>`);
     if (model.trees.length > 0) {
-      stepDisplay.push(`→ + Contributions from ${model.trees.length} tree(s)<br>`);
+      stepDisplay.push(`→ + ${model.trees.length} tree contribution(s)<br>`);
     }
     stepDisplay.push(`<br>`);
 
     // Calculate gradients
     stepDisplay.push(`<strong>Step 2: Calculate Gradients & Hessians</strong><br>`);
+
+    if (taskType === 'regression') {
+      const gradFormula = `g_i = \\frac{\\partial L}{\\partial \\hat{y}_i} = \\hat{y}_i - y_i`;
+      const hessFormula = `h_i = \\frac{\\partial^2 L}{\\partial \\hat{y}_i^2} = 1`;
+      stepDisplay.push(`<span class="formula-inline" data-formula="${gradFormula}"></span>, <span class="formula-inline" data-formula="${hessFormula}"></span><br>`);
+    } else {
+      const gradFormula = `g_i = p_i - y_i`;
+      const hessFormula = `h_i = p_i(1 - p_i)`;
+      stepDisplay.push(`<span class="formula-inline" data-formula="${gradFormula}"></span>, <span class="formula-inline" data-formula="${hessFormula}"></span><br>`);
+      stepDisplay.push(`where <span class="formula-inline" data-formula="p_i = \\sigma(F_t(x_i))"></span><br>`);
+    }
+
     const gradients = points.map((p, i) => {
       if (taskType === 'regression') {
         return predictions[i] - p.y; // MSE gradient
@@ -1354,15 +1463,23 @@ class XGBoost {
 
     const avgGrad = gradients.reduce((a, b) => a + b, 0) / gradients.length;
     const avgHess = hessians.reduce((a, b) => a + b, 0) / hessians.length;
-    stepDisplay.push(`→ Avg Gradient: ${avgGrad.toFixed(6)}<br>`);
-    stepDisplay.push(`→ Avg Hessian: ${avgHess.toFixed(6)}<br>`);
+    stepDisplay.push(`→ Avg Gradient: ${avgGrad.toFixed(6)}, Avg Hessian: ${avgHess.toFixed(6)}<br>`);
     stepDisplay.push(`<br>`);
 
     // Build tree on gradients (with regularization)
     stepDisplay.push(`<strong>Step 3: Build Tree on Gradients</strong><br>`);
-    stepDisplay.push(`→ Max Depth: ${maxDepth}, λ: ${lambda}, γ: ${gamma}<br>`);
+    const gainFormula = `Gain = \\frac{1}{2}\\left[\\frac{G_L^2}{H_L+\\lambda} + \\frac{G_R^2}{H_R+\\lambda} - \\frac{G^2}{H+\\lambda}\\right] - \\gamma`;
+    stepDisplay.push(`<span class="formula-inline" data-formula="${gainFormula}"></span><br>`);
+    stepDisplay.push(`→ Max Depth: ${maxDepth}, λ (L2): ${lambda}, γ (min gain): ${gamma}<br>`);
     const tree = this.buildBoostTree(points, gradients, hessians, 0, maxDepth, lambda, gamma);
     stepDisplay.push(`→ Tree built with regularization<br>`);
+    stepDisplay.push(`<br>`);
+
+    // Show leaf weight formula
+    stepDisplay.push(`<strong>Leaf Weight Calculation:</strong><br>`);
+    const leafFormula = `w = -\\frac{G}{H + \\lambda}`;
+    stepDisplay.push(`<span class="formula-inline" data-formula="${leafFormula}"></span><br>`);
+    stepDisplay.push(`where G = sum of gradients, H = sum of hessians<br>`);
     stepDisplay.push(`<br>`);
 
     // Add tree to model
@@ -1376,7 +1493,14 @@ class XGBoost {
     model.lossHistory.push(loss);
     this.lossHistory = model.lossHistory;
 
-    stepDisplay.push(`→ New Loss: ${loss.toFixed(6)}<br>`);
+    if (taskType === 'regression') {
+      const lossFormula = `\\text{MSE} = \\frac{1}{n}\\sum_{i=1}^{n}(y_i - F_t(x_i))^2`;
+      stepDisplay.push(`<span class="formula-inline" data-formula="${lossFormula}"></span><br>`);
+    } else {
+      const lossFormula = `\\text{LogLoss} = -\\frac{1}{n}\\sum_{i=1}^{n}[y_i\\log(p_i) + (1-y_i)\\log(1-p_i)]`;
+      stepDisplay.push(`<span class="formula-inline" data-formula="${lossFormula}"></span><br>`);
+    }
+    stepDisplay.push(`→ Loss after round ${model.iteration}: ${loss.toFixed(6)}<br>`);
     if (model.lossHistory.length > 1) {
       const prevLoss = model.lossHistory[model.lossHistory.length - 2];
       const improvement = prevLoss - loss;

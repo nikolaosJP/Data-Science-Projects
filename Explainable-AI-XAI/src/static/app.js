@@ -261,6 +261,8 @@ class App {
       if (stepsDisplay && this.models.dt.buildSteps) {
         stepsDisplay.innerHTML = this.models.dt.buildSteps.join('');
         document.getElementById('dt-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.decisionTree.updateDisplay(this.points, this.models.dt, taskType);
@@ -305,6 +307,8 @@ class App {
       if (stepsDisplay && this.models.rf.buildSteps) {
         stepsDisplay.innerHTML = this.models.rf.buildSteps.join('');
         document.getElementById('rf-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.randomForest.updateDisplay(this.points, this.models.rf, taskType);
@@ -370,6 +374,8 @@ class App {
       const stepsDisplay = document.getElementById('xgb-step-display');
       if (stepsDisplay && this.models.xgb.currentStepDisplay) {
         stepsDisplay.innerHTML = this.models.xgb.currentStepDisplay;
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.xgboost.updateDisplay(this.points, this.models.xgb, taskType);

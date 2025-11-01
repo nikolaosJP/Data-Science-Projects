@@ -22,6 +22,15 @@ function kFlush() {
   }
 }
 
+function kRenderInlineFormulas(container) {
+  if (!window.katex || !container) return;
+  const formulas = container.querySelectorAll('.formula-inline[data-formula]');
+  formulas.forEach(el => {
+    const formula = el.getAttribute('data-formula');
+    window.katex.render(formula, el, {displayMode: false, throwOnError: false});
+  });
+}
+
 // Math utilities
 function calculateMSE(points, m, b) {
   if (!points.length) return 0;
@@ -63,7 +72,7 @@ function pxToData(px, py, canvas) {
 
 // Export for global access
 window.AppUtils = {
-  kRender, kFlush, calculateMSE, calculateR2, 
+  kRender, kFlush, kRenderInlineFormulas, calculateMSE, calculateR2,
   dataToPx, pxToData, domain, margin
 };
 
