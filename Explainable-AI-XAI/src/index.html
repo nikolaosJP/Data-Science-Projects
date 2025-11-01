@@ -324,6 +324,7 @@
         <div class="tab active" data-nltab="dt">Decision Tree</div>
         <div class="tab" data-nltab="rf">Random Forest</div>
         <div class="tab" data-nltab="xgb">XGBoost</div>
+        <div class="tab" data-nltab="nn">Neural Network</div>
       </div>
 
       <!-- Decision Tree Subtab -->
@@ -499,6 +500,7 @@
               <label>Max Depth: <input id="xgb-max-depth" type="number" min="1" max="8" value="3"></label>
               <label>Lambda (L2): <input id="xgb-lambda" type="number" step="0.1" value="1" min="0"></label>
               <label>Min Split Loss (γ): <input id="xgb-gamma" type="number" step="0.1" value="0" min="0"></label>
+              <label>Subsample: <input id="xgb-subsample" type="number" step="0.1" value="1.0" min="0.1" max="1"></label>
 
               <div class="iteration-info">
                 <strong>Iteration: </strong><span id="xgb-iteration">0</span> •
@@ -539,6 +541,91 @@
 
               <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin-top:12px;">
                 <p style="margin:4px 0;font-size:12px;"><strong>XGBoost:</strong> Gradient boosting that sequentially builds trees to correct residuals. Each tree is trained on gradients of the loss function. <strong>Update:</strong> F(x) ← F(x) + η·tree(x). <strong>Regularization:</strong> L2 penalty (λ) on leaf weights. <strong>Loss:</strong> MSE for regression, Log Loss for classification.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Neural Network Subtab -->
+      <div class="nltab-content" id="nltab-nn">
+        <div class="main-grid">
+          <div class="panel">
+            <div class="gd-grid">
+              <div>
+                <div class="subtle">Data + Predictions</div>
+                <canvas id="plot-nn" width="800" height="500"></canvas>
+                <div class="hint">Select task type • Select class for classification • Click to add points • Right-click to delete</div>
+              </div>
+              <div>
+                <div class="subtle">Loss History</div>
+                <canvas id="nn-loss-plot" width="380" height="500"></canvas>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <h3>Feedforward Neural Network</h3>
+              <div class="controls">
+                <span><strong>Task: </strong></span>
+                <button id="nn-task-reg" class="success">Regression</button>
+                <button id="nn-task-cls">Classification</button>
+              </div>
+              <div class="controls" id="nn-class-selector" style="display:none;">
+                <span><strong>Class: </strong></span>
+                <button id="nn-class0-btn" class="warning">Class 0</button>
+                <button id="nn-class1-btn">Class 1</button>
+              </div>
+              <div class="controls">
+                <button id="init-nn" class="warning">Initialize</button>
+                <button id="next-epoch-nn" class="success" disabled>Next Epoch</button>
+                <button id="auto-nn">Auto</button>
+                <button id="reset-nn">Reset</button>
+              </div>
+              <label>Hidden Layer Sizes: <input id="nn-hidden" type="text" value="4,3" placeholder="e.g., 4,3"></label>
+              <label>Learning Rate (η): <input id="nn-lr" type="number" step="0.01" value="0.1" min="0.001" max="1"></label>
+              <label>Max Epochs (Auto): <input id="nn-max-epochs" type="number" min="1" max="1000" value="100"></label>
+              <label>L2 Regularization (λ): <input id="nn-lambda" type="number" step="0.001" value="0.001" min="0" max="1"></label>
+              <label>Dropout Rate: <input id="nn-dropout" type="number" step="0.05" value="0" min="0" max="0.9"></label>
+              <label>Activation:
+                <select id="nn-activation">
+                  <option value="relu">ReLU</option>
+                  <option value="tanh">Tanh</option>
+                  <option value="sigmoid">Sigmoid</option>
+                </select>
+              </label>
+
+              <div class="iteration-info">
+                <strong>Epoch: </strong><span id="nn-epoch">0</span> •
+                <strong>Params: </strong><span id="nn-params">0</span>
+              </div>
+
+              <div id="nn-steps" style="display:none">
+                <h4>Training Process</h4>
+                <div class="step-info">
+                  <div class="step-title">Epoch Details</div>
+                  <div id="nn-step-display" class="calculations" style="max-height:300px;overflow-y:auto;"></div>
+                </div>
+              </div>
+
+              <div id="nn-metrics" style="display:none">
+                <h4>Model Metrics</h4>
+                <div class="values-grid" id="nn-reg-metrics">
+                  <div class="value-box"><strong>MSE</strong><div id="nn-mse">—</div></div>
+                  <div class="value-box"><strong>R²</strong><div id="nn-r2">—</div></div>
+                  <div class="value-box"><strong>MAE</strong><div id="nn-mae">—</div></div>
+                </div>
+                <div class="values-grid" id="nn-cls-metrics" style="display:none">
+                  <div class="value-box"><strong>Accuracy</strong><div id="nn-accuracy">—</div></div>
+                  <div class="value-box"><strong>Precision</strong><div id="nn-precision">—</div></div>
+                  <div class="value-box"><strong>Recall</strong><div id="nn-recall">—</div></div>
+                  <div class="value-box"><strong>F1 Score</strong><div id="nn-f1">—</div></div>
+                  <div class="value-box"><strong>Log Loss</strong><div id="nn-logloss">—</div></div>
+                </div>
+              </div>
+
+              <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin-top:12px;">
+                <p style="margin:4px 0;font-size:12px;"><strong>Neural Network:</strong> Multi-layer perceptron with configurable architecture. Uses gradient descent with backpropagation to minimize loss. <strong>Forward:</strong> z = Wx + b, a = σ(z). <strong>Backward:</strong> ∂L/∂W via chain rule.</p>
               </div>
             </div>
           </div>

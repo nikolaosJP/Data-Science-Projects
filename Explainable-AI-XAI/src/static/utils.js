@@ -22,6 +22,15 @@ function kFlush() {
   }
 }
 
+function kRenderInlineFormulas(container) {
+  if (!window.katex || !container) return;
+  const formulas = container.querySelectorAll('.formula-inline[data-formula]');
+  formulas.forEach(el => {
+    const formula = el.getAttribute('data-formula');
+    window.katex.render(formula, el, {displayMode: false, throwOnError: false});
+  });
+}
+
 // Math utilities
 function calculateMSE(points, m, b) {
   if (!points.length) return 0;
@@ -63,7 +72,7 @@ function pxToData(px, py, canvas) {
 
 // Export for global access
 window.AppUtils = {
-  kRender, kFlush, calculateMSE, calculateR2, 
+  kRender, kFlush, kRenderInlineFormulas, calculateMSE, calculateR2,
   dataToPx, pxToData, domain, margin
 };
 
@@ -80,7 +89,8 @@ class CanvasHandler {
       logistic: document.getElementById('plot-logistic'),
       dt: document.getElementById('plot-dt'),
       rf: document.getElementById('plot-rf'),
-      xgb: document.getElementById('plot-xgb')
+      xgb: document.getElementById('plot-xgb'),
+      nn: document.getElementById('plot-nn')
     };
     this.contexts = {};
     Object.keys(this.canvases).forEach(key => {
@@ -330,6 +340,9 @@ class CanvasHandler {
     } else if (modelType === 'xgb') {
       const xgb = new XGBoost();
       predictor = (x) => xgb.predict({x: x}, model, 'classification');
+    } else if (modelType === 'nn') {
+      const nn = new NeuralNetwork();
+      predictor = (x) => nn.predict({x: x}, model, 'classification');
     }
 
     // Draw decision regions by sampling and finding boundaries
@@ -376,6 +389,9 @@ class CanvasHandler {
     } else if (modelType === 'xgb') {
       const xgb = new XGBoost();
       predictor = (x) => xgb.predictRaw({x: x}, model);
+    } else if (modelType === 'nn') {
+      const nn = new NeuralNetwork();
+      predictor = (x) => nn.predictRaw({x: x}, model);
     }
 
     // Draw the prediction curve

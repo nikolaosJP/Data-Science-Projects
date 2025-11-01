@@ -12,7 +12,7 @@ class App {
     this.showResiduals = true;
     this.activeLogisticGroup = 0; // Currently selected group for logistic regression (0 or 1)
     this.activeNLClass = 0; // Currently selected class for nonlinear classification (0 or 1)
-    this.nlTaskType = { dt: 'regression', rf: 'regression', xgb: 'regression' }; // Task type for each NL model
+    this.nlTaskType = { dt: 'regression', rf: 'regression', xgb: 'regression', nn: 'regression' }; // Task type for each NL model
 
     this.models = {
       ols: {m: 0, b: 0, fitted: false},
@@ -21,7 +21,8 @@ class App {
       logistic: {m: 0, b: 0, fitted: false},
       dt: {fitted: false, tree: null},
       rf: {fitted: false, trees: [], oobIndices: []},
-      xgb: {fitted: false, trees: [], basePrediction: 0, iteration: 0}
+      xgb: {fitted: false, trees: [], basePrediction: 0, iteration: 0},
+      nn: {fitted: false, weights: [], biases: [], epoch: 0}
     };
 
     // Statistics data storage
@@ -40,6 +41,7 @@ class App {
     this.decisionTree = new DecisionTree();
     this.randomForest = new RandomForest();
     this.xgboost = new XGBoost();
+    this.neuralNetwork = new NeuralNetwork();
 
     this.setupEventHandlers();
     this.initializeFormulas();
@@ -123,6 +125,16 @@ class App {
     document.getElementById('xgb-task-cls').onclick = () => this.setNLTask('xgb', 'classification');
     document.getElementById('xgb-class0-btn').onclick = () => this.setNLClass('xgb', 0);
     document.getElementById('xgb-class1-btn').onclick = () => this.setNLClass('xgb', 1);
+
+    // Neural Network Controls
+    document.getElementById('init-nn').onclick = () => this.initNN();
+    document.getElementById('next-epoch-nn').onclick = () => this.nextEpochNN();
+    document.getElementById('auto-nn').onclick = () => this.autoNN();
+    document.getElementById('reset-nn').onclick = () => this.resetNN();
+    document.getElementById('nn-task-reg').onclick = () => this.setNLTask('nn', 'regression');
+    document.getElementById('nn-task-cls').onclick = () => this.setNLTask('nn', 'classification');
+    document.getElementById('nn-class0-btn').onclick = () => this.setNLClass('nn', 0);
+    document.getElementById('nn-class1-btn').onclick = () => this.setNLClass('nn', 1);
 
     // Statistics Controls - Correlation
     document.getElementById('calc-correlation').onclick = () => this.calculateCorrelation();
@@ -261,6 +273,8 @@ class App {
       if (stepsDisplay && this.models.dt.buildSteps) {
         stepsDisplay.innerHTML = this.models.dt.buildSteps.join('');
         document.getElementById('dt-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.decisionTree.updateDisplay(this.points, this.models.dt, taskType);
@@ -305,6 +319,8 @@ class App {
       if (stepsDisplay && this.models.rf.buildSteps) {
         stepsDisplay.innerHTML = this.models.rf.buildSteps.join('');
         document.getElementById('rf-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.randomForest.updateDisplay(this.points, this.models.rf, taskType);
@@ -342,11 +358,13 @@ class App {
       document.getElementById('xgb-iteration').textContent = '0';
       document.getElementById('xgb-tree-count').textContent = '0';
 
-      // Show initialization message
+      // Show initial explanation with formulas
       const stepsDisplay = document.getElementById('xgb-step-display');
-      if (stepsDisplay) {
-        stepsDisplay.innerHTML = `<strong>XGBoost Initialized</strong><br>Base Prediction: ${this.models.xgb.basePrediction.toFixed(4)}<br>Task: ${taskType}<br><br>Click "Next Boost" to add trees sequentially.`;
+      if (stepsDisplay && this.models.xgb.initialExplanation) {
+        stepsDisplay.innerHTML = this.models.xgb.initialExplanation;
         document.getElementById('xgb-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.canvas.drawNL('xgb', this.points, this.models, taskType);
@@ -362,14 +380,22 @@ class App {
       const maxDepth = parseInt(document.getElementById('xgb-max-depth').value);
       const lambda = parseFloat(document.getElementById('xgb-lambda').value);
       const gamma = parseFloat(document.getElementById('xgb-gamma').value);
+      const subsample = parseFloat(document.getElementById('xgb-subsample').value);
       const taskType = this.nlTaskType.xgb;
 
-      this.models.xgb = this.xgboost.executeBoost(this.points, this.models.xgb, taskType, lr, maxDepth, lambda, gamma);
-
-      // Display step information
+      // If this is the first boost, add a separator after the initial explanation
       const stepsDisplay = document.getElementById('xgb-step-display');
+      if (this.models.xgb.iteration === 0 && stepsDisplay) {
+        stepsDisplay.innerHTML += '<br><strong>Boosting Iterations:</strong><br>';
+      }
+
+      this.models.xgb = this.xgboost.executeBoost(this.points, this.models.xgb, taskType, lr, maxDepth, lambda, gamma, subsample);
+
+      // Append step information
       if (stepsDisplay && this.models.xgb.currentStepDisplay) {
-        stepsDisplay.innerHTML = this.models.xgb.currentStepDisplay;
+        stepsDisplay.innerHTML += this.models.xgb.currentStepDisplay;
+        // Render inline formulas (though we shouldn't have many now)
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
       this.xgboost.updateDisplay(this.points, this.models.xgb, taskType);
@@ -435,6 +461,128 @@ class App {
     }
   }
 
+  // Neural Network Methods
+  initNN() {
+    try {
+      const hiddenSizesStr = document.getElementById('nn-hidden').value;
+      const hiddenSizes = hiddenSizesStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+      if (hiddenSizes.length === 0) {
+        alert('Invalid hidden layer sizes. Use comma-separated positive integers (e.g., 4,3)');
+        return;
+      }
+
+      const activation = document.getElementById('nn-activation').value;
+      const taskType = this.nlTaskType.nn;
+
+      this.models.nn = this.neuralNetwork.initialize(this.points, taskType, hiddenSizes, activation);
+      document.getElementById('next-epoch-nn').disabled = false;
+      document.getElementById('nn-epoch').textContent = '0';
+      document.getElementById('nn-params').textContent = this.models.nn.totalParams;
+
+      // Show initial explanation with formulas
+      const stepsDisplay = document.getElementById('nn-step-display');
+      if (stepsDisplay && this.models.nn.initialExplanation) {
+        stepsDisplay.innerHTML = this.models.nn.initialExplanation;
+        document.getElementById('nn-steps').style.display = 'block';
+        // Render inline formulas
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
+      }
+
+      this.canvas.drawNL('nn', this.points, this.models, taskType);
+      this.drawNNLossPlot();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  nextEpochNN() {
+    try {
+      const lr = parseFloat(document.getElementById('nn-lr').value);
+      const lambda = parseFloat(document.getElementById('nn-lambda').value);
+      const dropout = parseFloat(document.getElementById('nn-dropout').value);
+      const maxEpochs = parseInt(document.getElementById('nn-max-epochs').value);
+      const taskType = this.nlTaskType.nn;
+
+      // If this is the first epoch, add a separator after the initial explanation
+      const stepsDisplay = document.getElementById('nn-step-display');
+      if (this.models.nn.epoch === 0 && stepsDisplay) {
+        stepsDisplay.innerHTML += '<br><strong>Training Epochs:</strong><br>';
+      }
+
+      this.models.nn = this.neuralNetwork.trainEpoch(this.points, this.models.nn, taskType, lr, lambda, dropout);
+
+      // Append step information
+      if (stepsDisplay && this.models.nn.currentStepDisplay) {
+        stepsDisplay.innerHTML += this.models.nn.currentStepDisplay;
+        // Render inline formulas if any
+        AppUtils.kRenderInlineFormulas(stepsDisplay);
+      }
+
+      this.neuralNetwork.updateDisplay(this.points, this.models.nn, taskType);
+      this.canvas.drawNL('nn', this.points, this.models, taskType);
+      this.drawNNLossPlot();
+
+      document.getElementById('nn-epoch').textContent = this.models.nn.epoch;
+
+      document.getElementById('nn-metrics').style.display = 'block';
+      if (taskType === 'regression') {
+        document.getElementById('nn-reg-metrics').style.display = 'grid';
+        document.getElementById('nn-cls-metrics').style.display = 'none';
+      } else {
+        document.getElementById('nn-reg-metrics').style.display = 'none';
+        document.getElementById('nn-cls-metrics').style.display = 'grid';
+      }
+
+      // Stop if max epochs reached
+      if (this.neuralNetwork.autoRunning && this.models.nn.epoch >= maxEpochs) {
+        this.neuralNetwork.stopAutoRun();
+        document.getElementById('auto-nn').textContent = 'Auto';
+        document.getElementById('auto-nn').classList.remove('warning');
+      } else if (this.neuralNetwork.autoRunning) {
+        setTimeout(() => this.nextEpochNN(), 100);
+      }
+    } catch (e) {
+      alert(e.message);
+      this.neuralNetwork.stopAutoRun();
+    }
+  }
+
+  autoNN() {
+    if (this.neuralNetwork.autoRunning) {
+      this.neuralNetwork.stopAutoRun();
+      document.getElementById('auto-nn').textContent = 'Auto';
+      document.getElementById('auto-nn').classList.remove('warning');
+    } else {
+      if (!this.models.nn.fitted) {
+        alert('Initialize first!');
+        return;
+      }
+      this.neuralNetwork.startAutoRun();
+      document.getElementById('auto-nn').textContent = 'Stop';
+      document.getElementById('auto-nn').classList.add('warning');
+      this.nextEpochNN();
+    }
+  }
+
+  resetNN() {
+    this.neuralNetwork.reset();
+    this.models.nn = { fitted: false, weights: [], biases: [], epoch: 0 };
+    document.getElementById('next-epoch-nn').disabled = true;
+    document.getElementById('nn-epoch').textContent = '0';
+    document.getElementById('nn-params').textContent = '0';
+    document.getElementById('nn-steps').style.display = 'none';
+    document.getElementById('nn-metrics').style.display = 'none';
+    document.getElementById('auto-nn').textContent = 'Auto';
+    document.getElementById('auto-nn').classList.remove('warning');
+    this.canvas.drawNL('nn', this.points, this.models, this.nlTaskType.nn);
+  }
+
+  drawNNLossPlot() {
+    if (this.models.nn.lossHistory && this.models.nn.lossHistory.length > 0) {
+      this.canvas.drawLossPlot(this.models.nn.lossHistory, 'nn-loss-plot');
+    }
+  }
+
   addPoint(point) {
     this.points.push(point);
     this.redrawCanvas();
@@ -463,6 +611,8 @@ class App {
       this.canvas.drawNL(this.activeNLTab, this.points, this.models, taskType);
       if (this.activeNLTab === 'xgb' && this.models.xgb.fitted) {
         this.drawXGBLossPlot();
+      } else if (this.activeNLTab === 'nn' && this.models.nn.fitted) {
+        this.drawNNLossPlot();
       }
     }
 
