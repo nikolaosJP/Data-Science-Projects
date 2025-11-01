@@ -394,7 +394,7 @@ class App {
       // Append step information
       if (stepsDisplay && this.models.xgb.currentStepDisplay) {
         stepsDisplay.innerHTML += this.models.xgb.currentStepDisplay;
-        // Render inline formulas (though we shouldn't have many now)
+        // Render inline formulas
         AppUtils.kRenderInlineFormulas(stepsDisplay);
       }
 
