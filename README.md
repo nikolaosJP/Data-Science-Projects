@@ -8,15 +8,15 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Feedforward Artificial Neural Networks
 
-* [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring%20MNIST%20Dataset%20with%20MLPs): Train a multilayer perceptron on the MNIST dataset and learn how to tackle a handwritten digit classification problem.
+* [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring-MNIST-Dataset-with-MLPs): Train a multilayer perceptron on the MNIST dataset and learn how to tackle a handwritten digit classification problem.
 
 ### Convolutional Neural Networks
 
-* [Anomaly Detection with Transfer Learning](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/MVTec%20Anomaly%20Detection): Deploy multi-class classification model with a VGG16 feature extractor to detect anomalous structures.
-* [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction%20to%20style%20transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
+* [Anomaly Detection with Transfer Learning](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/MVTec-Anomaly-Detection): Deploy multi-class classification model with a VGG16 feature extractor to detect anomalous structures.
+* [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction-to-style-transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
 
 ### Explainable AI (XAI)
-* [Explainable AI](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Explainable%20AI%20(XAI)): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
+* [Explainable AI](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Explainable-AI-XAI): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
 
 ### Recommendation Systems
 * [Movie Recommendation System](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Recommendation-Systems): Build collaborative filtering recommendation models using matrix factorization and neural networks on the MovieLens dataset.
