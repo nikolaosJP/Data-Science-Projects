@@ -17,3 +17,6 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Explainable AI (XAI)
 * [Explainable AI](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Explainable%20AI%20(XAI)): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
+
+### Recommendation Systems
+* [Movie Recommendation System](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Recommendation-Systems): Build collaborative filtering recommendation models using matrix factorization and neural networks on the MovieLens dataset.
