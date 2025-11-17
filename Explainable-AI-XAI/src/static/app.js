@@ -42,6 +42,9 @@ class App {
     this.randomForest = new RandomForest();
     this.xgboost = new XGBoost();
     this.neuralNetwork = new NeuralNetwork();
+    this.recommendationSystem = new RecommendationSystem();
+    this.contentBasedFiltering = new ContentBasedFiltering(this.recommendationSystem);
+    this.collaborativeFiltering = new CollaborativeFiltering(this.recommendationSystem);
 
     this.setupEventHandlers();
     this.initializeFormulas();
@@ -163,6 +166,26 @@ class App {
       document.getElementById(`anova-g${i}-btn`).onclick = () => this.setAnovaGroup(i - 1);
     }
 
+    // Recommendation Systems Controls - Data Table
+    document.getElementById('recsys-add-user').onclick = () => this.addRecSysUser();
+    document.getElementById('recsys-add-movie').onclick = () => this.addRecSysMovie();
+    document.getElementById('recsys-reset-data').onclick = () => this.resetRecSysData();
+    document.getElementById('recsys-random-data').onclick = () => this.randomRecSysData();
+
+    // Movie Features Table Controls
+    document.getElementById('features-add-genre').onclick = () => this.addMovieFeature();
+    document.getElementById('features-reset-data').onclick = () => this.resetMovieFeatures();
+    document.getElementById('features-random-data').onclick = () => this.randomMovieFeatures();
+
+    // Recommendation Systems Controls - Content-Based Filtering
+    document.getElementById('compute-cb').onclick = () => this.computeContentBased();
+
+    // Recommendation Systems Controls - Collaborative Filtering
+    document.getElementById('init-cf').onclick = () => this.initCF();
+    document.getElementById('next-epoch-cf').onclick = () => this.nextEpochCF();
+    document.getElementById('auto-cf').onclick = () => this.autoCF();
+    document.getElementById('reset-cf').onclick = () => this.resetCF();
+
     // General Controls
     document.getElementById('clear').onclick = () => this.clear();
     document.getElementById('sample').onclick = () => this.generateSample();
@@ -194,6 +217,12 @@ class App {
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
     this.activeTab = tab;
+
+    // Hide general controls for Recommendation Systems tab
+    const generalControls = document.getElementById('general-controls-panel');
+    if (generalControls) {
+      generalControls.style.display = (tab === 'recsys') ? 'none' : 'block';
+    }
 
     // Redraw canvas when switching tabs
     this.redrawCanvas();
@@ -1401,6 +1430,121 @@ class App {
 
     // Label
     ctx.fillText('F-value', w / 2, h - 5);
+  }
+
+  // ============================================================================
+  // RECOMMENDATION SYSTEMS METHODS
+  // ============================================================================
+
+  addRecSysUser() {
+    try {
+      this.recommendationSystem.addUserRow();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  addRecSysMovie() {
+    try {
+      this.recommendationSystem.addMovieColumn();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  resetRecSysData() {
+    try {
+      this.recommendationSystem.resetToDefault();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  randomRecSysData() {
+    try {
+      this.recommendationSystem.generateRandomRatings();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  addMovieFeature() {
+    try {
+      this.contentBasedFiltering.addFeature();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  resetMovieFeatures() {
+    try {
+      this.contentBasedFiltering.resetFeatures();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  randomMovieFeatures() {
+    try {
+      this.contentBasedFiltering.randomizeFeatures();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  computeContentBased() {
+    try {
+      this.contentBasedFiltering.computeRecommendations();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  initCF() {
+    try {
+      this.collaborativeFiltering.initialize();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  nextEpochCF() {
+    try {
+      this.collaborativeFiltering.trainEpoch();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  autoCF() {
+    try {
+      if (!this.collaborativeFiltering.initialized) {
+        this.collaborativeFiltering.initialize();
+      }
+      this.collaborativeFiltering.autoRun();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  resetCF() {
+    this.collaborativeFiltering.reset();
+    document.getElementById('next-epoch-cf').disabled = true;
+    document.getElementById('cf-epoch').textContent = '0';
+    document.getElementById('cf-loss').textContent = '—';
+    document.getElementById('cf-equations').style.display = 'none';
+    document.getElementById('cf-matrices').style.display = 'none';
+    document.getElementById('cf-predictions').style.display = 'none';
+    document.getElementById('cf-metrics').style.display = 'none';
+
+    // Clear canvases
+    const lossCanvas = document.getElementById('cf-loss-plot');
+    const lossCtx = lossCanvas.getContext('2d');
+    lossCtx.clearRect(0, 0, lossCanvas.width, lossCanvas.height);
+
+    const heatmapCanvas = document.getElementById('cf-heatmap');
+    const heatmapCtx = heatmapCanvas.getContext('2d');
+    heatmapCtx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
   }
 
   initializeFormulas() {

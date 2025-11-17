@@ -19,9 +19,10 @@
     <div class="tab active" data-tab="linear">Linear Models</div>
     <div class="tab" data-tab="nonlinear">Nonlinear Models</div>
     <div class="tab" data-tab="stats">Statistics</div>
+    <div class="tab" data-tab="recsys">Recommendation Systems</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="general-controls-panel">
     <div class="controls">
       <button id="clear">Clear</button>
       <button id="sample">Sample</button>
@@ -828,6 +829,271 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendation Systems Tab -->
+  <div class="tab-content" id="tab-recsys">
+    <div class="panel">
+      <h3>Recommendation Systems</h3>
+
+      <!-- Ratings Data Table (shared between both methods) -->
+      <div class="panel" style="margin-bottom: 20px;">
+        <h4>User-Movie Ratings Matrix</h4>
+        <div class="hint">Edit cell values (0-5, where 0 = not rated) • Click "Add Row/Column" to expand the matrix</div>
+        <div class="controls">
+          <button id="recsys-add-user" class="success">Add User</button>
+          <button id="recsys-add-movie" class="success">Add Movie</button>
+          <button id="recsys-reset-data">Reset to Default</button>
+          <button id="recsys-random-data">Generate Random</button>
+        </div>
+        <div class="table-container" style="margin-top: 12px;">
+          <table id="recsys-ratings-table" class="editable-table">
+            <thead id="recsys-ratings-header">
+              <tr>
+                <th></th>
+                <th contenteditable="true" class="movie-name">Movie 1</th>
+                <th contenteditable="true" class="movie-name">Movie 2</th>
+                <th contenteditable="true" class="movie-name">Movie 3</th>
+              </tr>
+            </thead>
+            <tbody id="recsys-ratings-body">
+              <tr>
+                <th contenteditable="true" class="user-name">User 1</th>
+                <td contenteditable="true" class="rating-cell">5</td>
+                <td contenteditable="true" class="rating-cell">3</td>
+                <td contenteditable="true" class="rating-cell">0</td>
+              </tr>
+              <tr>
+                <th contenteditable="true" class="user-name">User 2</th>
+                <td contenteditable="true" class="rating-cell">4</td>
+                <td contenteditable="true" class="rating-cell">0</td>
+                <td contenteditable="true" class="rating-cell">0</td>
+              </tr>
+              <tr>
+                <th contenteditable="true" class="user-name">User 3</th>
+                <td contenteditable="true" class="rating-cell">1</td>
+                <td contenteditable="true" class="rating-cell">1</td>
+                <td contenteditable="true" class="rating-cell">0</td>
+              </tr>
+              <tr>
+                <th contenteditable="true" class="user-name">User 4</th>
+                <td contenteditable="true" class="rating-cell">1</td>
+                <td contenteditable="true" class="rating-cell">0</td>
+                <td contenteditable="true" class="rating-cell">5</td>
+              </tr>
+              <tr>
+                <th contenteditable="true" class="user-name">User 5</th>
+                <td contenteditable="true" class="rating-cell">0</td>
+                <td contenteditable="true" class="rating-cell">1</td>
+                <td contenteditable="true" class="rating-cell">5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Movie Features Table (for Content-Based Filtering) -->
+      <div class="panel" style="margin-bottom: 20px;">
+        <h4>Movie Features Matrix (Content)</h4>
+        <div class="hint">Edit feature values (0 or 1 for binary features, or weighted values 0-1) • Features represent genres/attributes</div>
+        <div class="controls">
+          <button id="features-add-genre" class="success">Add Genre/Feature</button>
+          <button id="features-reset-data">Reset to Default</button>
+          <button id="features-random-data">Generate Random</button>
+        </div>
+        <div class="table-container" style="margin-top: 12px;">
+          <table id="movie-features-table" class="editable-table">
+            <thead id="movie-features-header">
+              <tr>
+                <th></th>
+                <th contenteditable="true" class="genre-name">Action</th>
+                <th contenteditable="true" class="genre-name">Romance</th>
+                <th contenteditable="true" class="genre-name">Comedy</th>
+                <th contenteditable="true" class="genre-name">Drama</th>
+                <th contenteditable="true" class="genre-name">Sci-Fi</th>
+              </tr>
+            </thead>
+            <tbody id="movie-features-body">
+              <tr data-movie-idx="0">
+                <th class="movie-label">Movie 1</th>
+                <td contenteditable="true" class="feature-cell">1</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">1</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+              </tr>
+              <tr data-movie-idx="1">
+                <th class="movie-label">Movie 2</th>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">1</td>
+                <td contenteditable="true" class="feature-cell">1</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+              </tr>
+              <tr data-movie-idx="2">
+                <th class="movie-label">Movie 3</th>
+                <td contenteditable="true" class="feature-cell">1</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">0</td>
+                <td contenteditable="true" class="feature-cell">1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Content-Based Filtering -->
+      <div class="panel">
+        <h4>Content-Based Filtering</h4>
+        <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+          <p style="margin:4px 0;font-size:12px;"><strong>What is Content-Based Filtering?</strong> Recommends items similar to those a user has liked in the past, based on <strong>explicit content features</strong> (e.g., genres, directors, actors). We build a user profile from features of movies they've rated highly.</p>
+        </div>
+
+        <label>Similarity Measure:
+          <select id="cb-similarity-select">
+            <option value="cosine">Cosine Similarity</option>
+            <option value="euclidean">Euclidean Distance</option>
+          </select>
+        </label>
+
+        <div class="controls">
+          <button id="compute-cb" class="primary">Compute Recommendations for All Users</button>
+        </div>
+
+        <div id="cb-equations" style="display:none; margin-top: 16px;">
+          <h4>Algorithm Steps</h4>
+          <div class="calculations">
+            <div class="calc-step"><strong>Step 1: Extract Item Features</strong></div>
+            <div class="calc-step"><span id="cb-eq-features"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 2: Build User Profile</strong></div>
+            <div class="calc-step"><span id="cb-eq-profile"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 3: Compute Similarity</strong></div>
+            <div class="calc-step"><span id="cb-eq-similarity"></span></div>
+          </div>
+        </div>
+
+        <div id="cb-results" style="display:none">
+          <h4>Step 1: Ratings Matrix & Movie Content Features</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="cb-step1-tex"></span></div>
+          </div>
+
+          <h4>Step 2: Build User Profiles from Rated Movies' Features</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="cb-step2-tex"></span></div>
+          </div>
+
+          <h4>Step 3: Compute Similarity Between User Profiles and Movie Features</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="cb-step3-tex"></span></div>
+          </div>
+
+          <h4>Step 4: Convert Similarity to Predicted Ratings</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="cb-step4-tex"></span></div>
+          </div>
+
+          <h4>Step 5: Predicted Ratings for All Users</h4>
+          <div class="calculations">
+            <div class="calc-step" style="font-size:12px;color:#666;margin-bottom:8px;">
+              <strong>Blue background</strong> = Actual ratings already given by user<br>
+              <strong>Green text</strong> = Predicted ratings based on content similarity (hover to see similarity score)
+            </div>
+          </div>
+          <div class="table-container">
+            <table id="cb-predictions-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collaborative Filtering -->
+      <div class="panel">
+        <h4>Collaborative Filtering (Matrix Factorization)</h4>
+        <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+          <p style="margin:4px 0;font-size:12px;"><strong>What is Collaborative Filtering?</strong> Uses patterns from multiple users' behavior to make predictions. Matrix Factorization decomposes the user-item rating matrix R ≈ P × Q<sup>T</sup>, where P is user features and Q is item features.</p>
+        </div>
+
+        <div class="controls">
+          <button id="init-cf" class="warning">Initialize</button>
+          <button id="next-epoch-cf" class="success" disabled>Next Epoch</button>
+          <button id="auto-cf">Auto</button>
+          <button id="reset-cf">Reset</button>
+        </div>
+
+        <label>Latent Factors (k): <input id="cf-k" type="number" min="1" max="10" value="2"></label>
+        <label>Learning Rate (η): <input id="cf-lr" type="number" step="0.001" value="0.01" min="0.0001" max="1"></label>
+        <label>Regularization (λ): <input id="cf-lambda" type="number" step="0.001" value="0.01" min="0" max="1"></label>
+        <label>Max Epochs (Auto): <input id="cf-max-epochs" type="number" min="1" max="1000" value="100"></label>
+
+        <div class="iteration-info">
+          <strong>Epoch: </strong><span id="cf-epoch">0</span> •
+          <strong>Loss: </strong><span id="cf-loss">—</span>
+        </div>
+
+        <div id="cf-equations" style="display:none; margin-top: 16px;">
+          <h4>Algorithm Steps</h4>
+          <div class="calculations">
+            <div class="calc-step"><strong>Step 1: Initialize Matrices</strong></div>
+            <div class="calc-step"><span id="cf-eq-init"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 2: Predict Rating</strong></div>
+            <div class="calc-step"><span id="cf-eq-predict"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 3: Compute Error</strong></div>
+            <div class="calc-step"><span id="cf-eq-error"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 4: Update Parameters (Gradient Descent)</strong></div>
+            <div class="calc-step"><span id="cf-eq-update"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 5: Compute Loss</strong></div>
+            <div class="calc-step"><span id="cf-eq-loss"></span></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: 16px;">
+          <div class="gd-grid">
+            <div>
+              <div class="subtle">Loss History</div>
+              <canvas id="cf-loss-plot" width="400" height="300"></canvas>
+            </div>
+            <div>
+              <div class="subtle">Predicted Ratings Heatmap</div>
+              <canvas id="cf-heatmap" width="380" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="cf-matrices" style="display:none">
+          <h4>Learned Factor Matrices</h4>
+          <div class="table-container" style="margin-bottom: 12px;">
+            <strong>User Features (P)</strong>
+            <table id="cf-p-matrix" style="margin-top: 8px;"></table>
+          </div>
+          <div class="table-container">
+            <strong>Item Features (Q)</strong>
+            <table id="cf-q-matrix" style="margin-top: 8px;"></table>
+          </div>
+        </div>
+
+        <div id="cf-predictions" style="display:none">
+          <h4>Predicted Ratings</h4>
+          <div class="table-container">
+            <table id="cf-pred-table"></table>
+          </div>
+        </div>
+
+        <div id="cf-metrics" style="display:none">
+          <h4>Model Metrics</h4>
+          <div class="values-grid">
+            <div class="value-box"><strong>RMSE</strong><div id="cf-rmse">—</div></div>
+            <div class="value-box"><strong>MAE</strong><div id="cf-mae">—</div></div>
           </div>
         </div>
       </div>
