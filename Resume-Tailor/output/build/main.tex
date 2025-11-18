@@ -1,0 +1,30 @@
+% !TEX program = xelatex
+\documentclass[]{friggeri-cv}
+
+% Ensure enumitem is included
+\usepackage{enumitem}
+
+% \input{includes}
+
+% Simplify \setlist command to start
+\setlist[itemize]{topsep=0pt,align=parleft,left=0pt..1em}
+
+\begin{document}
+\pagestyle{plain}
+
+% \header{Nick}{ Iliopoulos}{Energy Economist | Data Scientist | Algorithmic Trader}
+
+\header{Nick}{ Iliopoulos}
+{
+\href {https://github.com/nikolaosJP}{{github.com/nikolaosJP}} | 
+\href{mailto:nikolaos.iliopoulos@s.k.u-tokyo.ac.jp}{nikosiliopoulos@outlook.com} | 
+\href{https://linkedin.com/in/nickiliopoulos}{linkedin.com/in/nickiliopoulos}
+}
+
+%\header \href {https://github.com/nikolaosJP}{{github.com/nikolaosJP}} $|$
+%    \href{mailto:nikolaos.iliopoulos@s.k.u-tokyo.ac.jp}{nikosiliopoulos@outlook.com}} $|$ 
+%    \href{https://linkedin.com/in/nickiliopoulos}{{linkedin.com/in/nickiliopoulos}}
+
+\input{tailored_resume}
+
+\end{document}

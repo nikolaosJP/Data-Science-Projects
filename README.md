@@ -1,25 +1,44 @@
-# Machine / Deep Learning with Python
+# Projects Portfolio
 
-This repository contains numerous jupyter notebooks covering a wide range of machine learning & deep learning algorithms (e.g., convolutional and recurrent networks, model optimization techniques, etc.). The supporting files necessary to work through a given project from start to finish are contained within each respective project folder.
+Welcome to my digital workshop! This is where I build things that range from "teaching machines to see" to "making my resume not look like everyone else's." Each project comes with documentation that hopefully makes more sense than IKEA instructions.
 
-In most cases, the notebooks are meant to be minimal and easily reusable and extendable. You are free to use them for educational and research purposes.
+## What's Inside
 
-## Table of Contents
+### Machine Learning & AI
+*Teaching computers to do cool stuff (and occasionally debugging why they do weird stuff)*
 
-### Feedforward Artificial Neural Networks
+**Neural Networks**
+* [MNIST Digit Classification](https://github.com/nikolaosJP/Projects/tree/main/Exploring-MNIST-Dataset-with-MLPs): Built a multilayer perceptron that can read handwritten digits better than most doctors.
 
-* [MLP for MNIST Classification](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Exploring-MNIST-Dataset-with-MLPs): Train a multilayer perceptron on the MNIST dataset and learn how to tackle a handwritten digit classification problem.
+**Computer Vision**
+* [Anomaly Detection](https://github.com/nikolaosJP/Projects/tree/main/MVTec-Anomaly-Detection): Transfer learning with VGG16 to spot defects in manufacturing. Because even machines need quality control.
+* [Style Transfer](https://github.com/nikolaosJP/Projects/tree/main/Introduction-to-style-transferring): Turn your photos into Van Gogh paintings. Your Instagram will never be the same.
 
-### Convolutional Neural Networks
+**Explainability**
+* [Explainable AI Platform](https://github.com/nikolaosJP/Projects/tree/main/Explainable-AI-XAI): An interactive app that shows what's actually happening under the hood of ML models. No more black boxes!
 
-* [Anomaly Detection with Transfer Learning](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/MVTec-Anomaly-Detection): Deploy multi-class classification model with a VGG16 feature extractor to detect anomalous structures.
-* [Style Transferring](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Introduction-to-style-transferring): Learn how to implement transfer learning and style transferring to create museum-worthy masterpieces.
+**Recommendation Systems**
+* [Movie Recommender](https://github.com/nikolaosJP/Projects/tree/main/Recommendation-Systems): Collaborative filtering with matrix factorization and neural networks on MovieLens data. Yes, it's better than Netflix's "Because you watched..." suggestions.
 
-### Explainable AI (XAI)
-* [Explainable AI](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Explainable-AI-XAI): An interactive application that demonstrates how traditional machine learning algorithms function from the ground up.
+### Finance & Trading
+*Where math meets money (responsibly, of course)*
 
-### Recommendation Systems
-* [Movie Recommendation System](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Recommendation-Systems): Build collaborative filtering recommendation models using matrix factorization and neural networks on the MovieLens dataset.
+* [Energy Market Forecasting](https://github.com/nikolaosJP/Projects/tree/main/Energy-Market-Prediction): Day-ahead energy price predictions using XGBoost and Optuna. Achieved €1.38M PNL in backtesting. Disclaimer: Past performance doesn't guarantee future results, but it does make cool visualizations.
 
-### Time Series Forecasting
-* [Energy Market Prediction](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Energy-Market-Prediction): Predict day-ahead energy market prices using XGBoost with advanced feature engineering and Optuna-based hyperparameter optimization for trading strategy development.
+* [Portfolio Tracker](https://github.com/nikolaosJP/Projects/tree/main/Portfolio-Tracker): Automated analytics for Interactive Brokers accounts. Track performance, get rebalancing recommendations, and see pretty charts. Because spreadsheets are so 2010.
+
+### Productivity Tools
+*Automating the boring stuff so I can focus on the interesting stuff*
+
+* [AI Resume Tailor](https://github.com/nikolaosJP/Projects/tree/main/Resume-Tailor): Uses Google's Gemini API to customize your LaTeX resume for each job application. Because manually tweaking resumes is nobody's idea of fun.
+
+* [Cost of Living Scraper](https://github.com/nikolaosJP/Projects/tree/main/Cost-of-Living-Scraper): Scrapes Numbeo for cost-of-living data across countries and cities. Outputs clean Parquet files for analysis. Great for digital nomads and data nerds.
+
+### Learning Journey
+*Proof that I actually read those textbooks*
+
+* [Textbook Solutions](https://github.com/nikolaosJP/Projects/tree/main/Textbook-Exercises): Worked solutions from "Applied Predictive Modeling" and "Introduction to Statistical Learning." Because the best way to learn is by doing (and then documenting it).
+
+---
+
+**Note:** All projects are here for educational and research purposes. Feel free to explore, fork, and improve! Found a bug? That's a feature in disguise. Just kidding—submit an issue.

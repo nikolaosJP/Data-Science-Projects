@@ -1,0 +1,24 @@
+Our client is looking for an experienced Lead Data Scientist
+
+
+Responsibilities:
+
+    Development and training of transformer-based models for both text and images.
+    Architect and oversee the entire model lifecycle, from data preparation, model design, training, development and validation to model deployment and monitoring.
+    Collaborate with cross-functional teams, including data scientists, software engineers, and domain experts, to design and implement AI-driven solutions.
+    Stay current with the latest advancements in AI and machine learning, integrating new techniques and technologies as appropriate.
+
+
+Requirements:
+
+    Bachelor’s or Master’s degree in Computer Science, Data Science, or a related field.
+    Strong expertise with large scale Neural Networks, Deep Learning and Reinforcement Learning techniques.
+    Practical exposure to GenAI projects and related frameworks (RAG apps, vector DBs, LangChain, LlamaIndex, agentic frameworks, ...)
+    Advanced knowledge of Python and machine learning frameworks (SciPy, Scikit-learn, TensorFlow, PyTorch, pyMC, pgmpy, ...)
+    Hands-on experience with one or more cloud computing platforms (Azure - preferred, AWS, GCP).
+    Understanding of the whole ML lifecycle and experience with MLOps/DataOps.
+    Experience with Probabilistic Graphical Modelling (Bayesian Networks, Markov Random Fields, Factor Graphs, ...)
+    Strong problem-solving skills and attention to detail.
+    Good communication skills, fluent English.
+
+
