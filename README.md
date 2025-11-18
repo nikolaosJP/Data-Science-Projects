@@ -20,3 +20,6 @@ In most cases, the notebooks are meant to be minimal and easily reusable and ext
 
 ### Recommendation Systems
 * [Movie Recommendation System](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Recommendation-Systems): Build collaborative filtering recommendation models using matrix factorization and neural networks on the MovieLens dataset.
+
+### Time Series Forecasting
+* [Energy Market Prediction](https://github.com/nikolaosJP/Data-Science-Projects/tree/main/Energy-Market-Prediction): Predict day-ahead energy market prices using XGBoost with advanced feature engineering and Optuna-based hyperparameter optimization for trading strategy development.
