@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Tracker - Your Personal Productivity App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        #root {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Safely access Recharts components
+        const getRechartsComponents = () => {
+          if (typeof Recharts === 'undefined' || !Recharts) return null;
+          try {
+            return {
+              BarChart: Recharts.BarChart,
+              Bar: Recharts.Bar,
+              XAxis: Recharts.XAxis,
+              YAxis: Recharts.YAxis,
+              CartesianGrid: Recharts.CartesianGrid,
+              Tooltip: Recharts.Tooltip,
+              ResponsiveContainer: Recharts.ResponsiveContainer,
+              LineChart: Recharts.LineChart,
+              Line: Recharts.Line,
+              RadarChart: Recharts.RadarChart,
+              PolarGrid: Recharts.PolarGrid,
+              PolarAngleAxis: Recharts.PolarAngleAxis,
+              PolarRadiusAxis: Recharts.PolarRadiusAxis,
+              Radar: Recharts.Radar,
+              PieChart: Recharts.PieChart,
+              Pie: Recharts.Pie,
+              Cell: Recharts.Cell,
+              Legend: Recharts.Legend,
+              AreaChart: Recharts.AreaChart,
+              Area: Recharts.Area
+            };
+          } catch (e) {
+            console.error('Recharts error:', e);
+            return null;
+          }
+        };
+
+        // Lucide Icons as inline SVG components
+        const Target = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+        );
+
+        const Plus = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const Trash2 = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        );
+
+        const Calendar = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+        );
+
+        const Inbox = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+        );
+
+        const CheckCircle2 = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+            </svg>
+        );
+
+        const BarChart3 = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18"></path>
+                <path d="M18 17V9"></path>
+                <path d="M13 17V5"></path>
+                <path d="M8 17v-3"></path>
+            </svg>
+        );
+
+        const Heart = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+        );
+
+        const Briefcase = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+        );
+
+        const DollarSign = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+        );
+
+        const BookOpen = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+        );
+
+        const Users = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        );
+
+        const Home = ({ size = 24, className = '', style = {} }) => (
+            <svg width={size} height={size} className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        );
+
+        const Flag = ({ size = 24, className = '', fill = 'none' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+            </svg>
+        );
+
+        const Repeat = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+        );
+
+        const ChevronLeft = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        );
+
+        const ChevronRight = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        );
+
+        const TrendingUp = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+        );
+
+        const Clock = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        const Edit2 = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+        );
+
+        const X = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        const MoreVertical = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+        );
+
+        const List = ({ size = 24, className = '' }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+        );
+
+        // Main Goal Tracker Component
+        const GoalTracker = () => {
+          const [activeList, setActiveList] = useState('today');
+          const [activeView, setActiveView] = useState('list');
+          const [calendarView, setCalendarView] = useState('month');
+          const [newGoalText, setNewGoalText] = useState('');
+          const [showAddTask, setShowAddTask] = useState(false);
+          const [selectedCategory, setSelectedCategory] = useState('health');
+          const [selectedTimeframe, setSelectedTimeframe] = useState('daily');
+          const [selectedTime, setSelectedTime] = useState('09:00');
+          const [isRecurring, setIsRecurring] = useState(false);
+          const [currentDate, setCurrentDate] = useState(new Date());
+          const [showListManager, setShowListManager] = useState(false);
+          const [editingList, setEditingList] = useState(null);
+          const [newListName, setNewListName] = useState('');
+          const [newListColor, setNewListColor] = useState('#4A90E2');
+          const [newListIcon, setNewListIcon] = useState('List');
+          const [selectedDateForTask, setSelectedDateForTask] = useState(null);
+          const [showCalendarTaskMenu, setShowCalendarTaskMenu] = useState(null);
+          const [statsTab, setStatsTab] = useState('overview');
+          const [statsCategoryFilter, setStatsCategoryFilter] = useState('all');
+          const [statsTimePeriod, setStatsTimePeriod] = useState('week'); // week, month, year, all
+          const [targetCompletions, setTargetCompletions] = useState(0);
+          const [notes, setNotes] = useState([]);
+          const [newNoteText, setNewNoteText] = useState('');
+          const [showAddNote, setShowAddNote] = useState(false);
+          const [startDateTime, setStartDateTime] = useState('');
+          const [endDateTime, setEndDateTime] = useState('');
+          const [isReminder, setIsReminder] = useState(false);
+
+          const availableIcons = [
+            { name: 'List', component: List },
+            { name: 'Target', component: Target },
+            { name: 'Heart', component: Heart },
+            { name: 'Briefcase', component: Briefcase },
+            { name: 'DollarSign', component: DollarSign },
+            { name: 'BookOpen', component: BookOpen },
+            { name: 'Users', component: Users },
+            { name: 'Home', component: Home },
+            { name: 'Calendar', component: Calendar },
+            { name: 'CheckCircle2', component: CheckCircle2 },
+            { name: 'TrendingUp', component: TrendingUp },
+            { name: 'Flag', component: Flag },
+            { name: 'Inbox', component: Inbox },
+            { name: 'Clock', component: Clock },
+            { name: 'Repeat', component: Repeat },
+            { name: 'Plus', component: Plus },
+            { name: 'Edit2', component: Edit2 },
+            { name: 'BarChart3', component: BarChart3 }
+          ];
+
+          const lists = [
+            { id: 'today', name: 'Today', icon: Inbox, color: '#4A90E2', isDefault: true },
+            { id: 'daily', name: 'Daily Goals', icon: Target, color: '#22C55E', isDefault: true },
+            { id: 'weekly', name: 'Weekly Goals', icon: Calendar, color: '#F59E0B', isDefault: true },
+            { id: 'monthly', name: 'Monthly Goals', icon: Calendar, color: '#EC4899', isDefault: true },
+            { id: 'annual', name: 'Annual Goals', icon: Calendar, color: '#8B5CF6', isDefault: true }
+          ];
+
+          const [defaultCategories, setDefaultCategories] = useState([
+            { id: 'health', name: 'Health & Fitness', icon: Heart, iconName: 'Heart', color: '#EF4444', isDefault: true },
+            { id: 'career', name: 'Career', icon: Briefcase, iconName: 'Briefcase', color: '#3B82F6', isDefault: true },
+            { id: 'finance', name: 'Finance', icon: DollarSign, iconName: 'DollarSign', color: '#10B981', isDefault: true },
+            { id: 'education', name: 'Education', icon: BookOpen, iconName: 'BookOpen', color: '#F59E0B', isDefault: true },
+            { id: 'relationships', name: 'Relationships', icon: Users, iconName: 'Users', color: '#8B5CF6', isDefault: true },
+            { id: 'personal', name: 'Personal', icon: Home, iconName: 'Home', color: '#06B6D4', isDefault: true }
+          ]);
+
+          const [customCategories, setCustomCategories] = useState([]);
+
+          // Start with empty goals - clean slate for user's real data
+          const [goals, setGoals] = useState({
+            daily: [],
+            weekly: [],
+            monthly: [],
+            annual: []
+          });
+
+          useEffect(() => {
+            // Load saved data from localStorage
+            const savedGoals = localStorage.getItem('goalTrackerGoals');
+            const savedDefaultCategories = localStorage.getItem('goalTrackerDefaultCategories');
+            const savedCustomCategories = localStorage.getItem('goalTrackerCustomCategories');
+            const savedNotes = localStorage.getItem('goalTrackerNotes');
+
+            if (savedGoals) {
+              setGoals(JSON.parse(savedGoals));
+            }
+
+            if (savedDefaultCategories) {
+              const parsed = JSON.parse(savedDefaultCategories);
+              const reconstructed = parsed.map(cat => {
+                const iconObj = availableIcons.find(i => i.name === cat.iconName);
+                return {
+                  ...cat,
+                  icon: iconObj?.component || List
+                };
+              });
+              setDefaultCategories(reconstructed);
+            }
+
+            if (savedCustomCategories) {
+              const parsed = JSON.parse(savedCustomCategories);
+              const reconstructed = parsed.map(cat => {
+                const iconObj = availableIcons.find(i => i.name === cat.iconName);
+                return {
+                  ...cat,
+                  icon: iconObj?.component || List
+                };
+              });
+              setCustomCategories(reconstructed);
+            }
+
+            if (savedNotes) {
+              setNotes(JSON.parse(savedNotes));
+            }
+          }, []);
+
+          useEffect(() => {
+            localStorage.setItem('goalTrackerGoals', JSON.stringify(goals));
+          }, [goals]);
+
+          useEffect(() => {
+            localStorage.setItem('goalTrackerDefaultCategories', JSON.stringify(defaultCategories));
+          }, [defaultCategories]);
+
+          useEffect(() => {
+            localStorage.setItem('goalTrackerCustomCategories', JSON.stringify(customCategories));
+          }, [customCategories]);
+
+          useEffect(() => {
+            localStorage.setItem('goalTrackerNotes', JSON.stringify(notes));
+          }, [notes]);
+
+          const categories = [...defaultCategories, ...customCategories];
+
+          const addCustomCategory = () => {
+            if (newListName.trim()) {
+              const selectedIconObj = availableIcons.find(i => i.name === newListIcon);
+              const newCategory = {
+                id: 'custom-' + Date.now(),
+                name: newListName,
+                icon: selectedIconObj?.component || List,
+                iconName: newListIcon,
+                color: newListColor,
+                isDefault: false
+              };
+              setCustomCategories(prev => [...prev, newCategory]);
+              setNewListName('');
+              setNewListIcon('List');
+              setShowListManager(false);
+            }
+          };
+
+          const editDefaultCategory = (categoryId) => {
+            const category = defaultCategories.find(c => c.id === categoryId);
+            if (category) {
+              setEditingList(categoryId);
+              setNewListName(category.name);
+              setNewListColor(category.color);
+              setNewListIcon(category.iconName || category.icon.name || 'List');
+              setShowListManager(true);
+            }
+          };
+
+          const editCustomCategory = (categoryId) => {
+            const category = customCategories.find(c => c.id === categoryId);
+            if (category) {
+              setEditingList(categoryId);
+              setNewListName(category.name);
+              setNewListColor(category.color);
+              setNewListIcon(category.iconName || 'List');
+              setShowListManager(true);
+            }
+          };
+
+          const updateCustomCategory = () => {
+            if (newListName.trim() && editingList) {
+              const selectedIconObj = availableIcons.find(i => i.name === newListIcon);
+              
+              // Check if it's a default category
+              const isDefault = defaultCategories.find(c => c.id === editingList);
+              
+              if (isDefault) {
+                setDefaultCategories(prev => prev.map(cat =>
+                  cat.id === editingList
+                    ? { ...cat, name: newListName, color: newListColor, icon: selectedIconObj?.component || List, iconName: newListIcon }
+                    : cat
+                ));
+              } else {
+                setCustomCategories(prev => prev.map(cat =>
+                  cat.id === editingList
+                    ? { ...cat, name: newListName, color: newListColor, icon: selectedIconObj?.component || List, iconName: newListIcon }
+                    : cat
+                ));
+              }
+              
+              setNewListName('');
+              setNewListIcon('List');
+              setEditingList(null);
+              setShowListManager(false);
+            }
+          };
+
+          const deleteDefaultCategory = (categoryId) => {
+            if (confirm('Delete this category? All goals with this category will remain but be uncategorized.')) {
+              setDefaultCategories(prev => prev.filter(c => c.id !== categoryId));
+              if (activeList === categoryId) {
+                setActiveList('today');
+              }
+            }
+          };
+
+          const deleteCustomCategory = (categoryId) => {
+            if (confirm('Delete this category? All goals with this category will remain but be uncategorized.')) {
+              setCustomCategories(prev => prev.filter(c => c.id !== categoryId));
+              if (activeList === categoryId) {
+                setActiveList('today');
+              }
+            }
+          };
+
+          const addGoal = () => {
+            if (selectedDateForTask) {
+              addGoalWithDate();
+              return;
+            }
+            
+            if (newGoalText.trim()) {
+              const newGoal = {
+                id: Date.now(),
+                text: newGoalText,
+                time: selectedTime,
+                completed: false,
+                category: selectedCategory,
+                priority: 0,
+                timeframe: selectedTimeframe,
+                recurring: isRecurring,
+                completedDates: [],
+                targetCompletions: targetCompletions > 0 ? targetCompletions : null,
+                startDateTime: startDateTime || null,
+                endDateTime: endDateTime || null,
+                isReminder: isReminder
+              };
+
+              setGoals(prev => ({
+                ...prev,
+                [selectedTimeframe]: [...(prev[selectedTimeframe] || []), newGoal]
+              }));
+
+              setNewGoalText('');
+              setShowAddTask(false);
+              setIsRecurring(false);
+              setTargetCompletions(0);
+              setStartDateTime('');
+              setEndDateTime('');
+              setIsReminder(false);
+            }
+          };
+
+          const toggleGoal = (goalId, timeframe) => {
+            const today = new Date().toISOString().split('T')[0];
+            setGoals(prev => ({
+              ...prev,
+              [timeframe]: prev[timeframe].map(goal => {
+                if (goal.id === goalId) {
+                  const newCompleted = !goal.completed;
+                  const currentDates = goal.completedDates || [];
+                  const newDates = newCompleted 
+                    ? [...currentDates, today]
+                    : currentDates.filter(d => d !== today);
+                  return { ...goal, completed: newCompleted, completedDates: newDates };
+                }
+                return goal;
+              })
+            }));
+          };
+
+          const deleteGoal = (goalId, timeframe) => {
+            setGoals(prev => ({
+              ...prev,
+              [timeframe]: prev[timeframe].filter(goal => goal.id !== goalId)
+            }));
+          };
+
+          const addNote = () => {
+            if (newNoteText.trim()) {
+              const newNote = {
+                id: Date.now(),
+                text: newNoteText,
+                createdAt: new Date().toISOString()
+              };
+              setNotes(prev => [...prev, newNote]);
+              setNewNoteText('');
+              setShowAddNote(false);
+            }
+          };
+
+          const deleteNote = (noteId) => {
+            setNotes(prev => prev.filter(note => note.id !== noteId));
+          };
+
+          const setPriority = (goalId, timeframe, priority) => {
+            setGoals(prev => ({
+              ...prev,
+              [timeframe]: prev[timeframe].map(goal =>
+                goal.id === goalId ? { ...goal, priority } : goal
+              )
+            }));
+          };
+
+          const getAllGoals = () => {
+            const allGoalsArray = [];
+            Object.keys(goals).forEach(key => {
+              if (Array.isArray(goals[key])) {
+                allGoalsArray.push(...goals[key]);
+              }
+            });
+            return allGoalsArray;
+          };
+
+          const getDisplayGoals = () => {
+            const allGoals = getAllGoals();
+            
+            if (activeList === 'today') {
+              return [...(goals.daily || []), ...(goals.weekly || []).slice(0, 3), ...(goals.monthly || []).slice(0, 1)];
+            } else if (['daily', 'weekly', 'monthly', 'annual'].includes(activeList)) {
+              return goals[activeList] || [];
+            } else {
+              // It's a category (default or custom)
+              return allGoals.filter(g => g.category === activeList);
+            }
+          };
+
+          const toggleGoalFromCalendar = (goalId, timeframe, date) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+            
+            setGoals(prev => ({
+              ...prev,
+              [timeframe]: (prev[timeframe] || []).map(goal => {
+                if (goal.id === goalId) {
+                  const currentDates = goal.completedDates || [];
+                  const hasDate = currentDates.includes(dateStr);
+                  const newDates = hasDate
+                    ? currentDates.filter(d => d !== dateStr)
+                    : [...currentDates, dateStr];
+                  
+                  // If toggling today's date, also update the completed boolean
+                  const updates = { completedDates: newDates };
+                  if (dateStr === today) {
+                    updates.completed = !hasDate;
+                  }
+                  
+                  return { ...goal, ...updates };
+                }
+                return goal;
+              })
+            }));
+          };
+
+          const addGoalToDate = (date) => {
+            setSelectedDateForTask(date);
+            setShowAddTask(true);
+            setActiveView('list'); // Switch to list view so the form is visible
+          };
+
+          const addGoalWithDate = () => {
+            if (newGoalText.trim()) {
+              const newGoal = {
+                id: Date.now(),
+                text: newGoalText,
+                time: selectedTime,
+                completed: false,
+                category: selectedCategory,
+                priority: 0,
+                timeframe: selectedTimeframe,
+                recurring: isRecurring,
+                completedDates: selectedDateForTask ? [selectedDateForTask.toISOString().split('T')[0]] : []
+              };
+              
+              setGoals(prev => ({
+                ...prev,
+                [selectedTimeframe]: [...(prev[selectedTimeframe] || []), newGoal]
+              }));
+              
+              setNewGoalText('');
+              setShowAddTask(false);
+              setIsRecurring(false);
+              setSelectedDateForTask(null);
+            }
+          };
+
+          const getGoalsForDate = (date) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+
+            return getAllGoals().filter(goal => {
+              // Exclude reminders from calendar view
+              if (goal.isReminder) return false;
+
+              // Show daily goals every day
+              if (goal.timeframe === 'daily') return true;
+              
+              // Show weekly goals (you might want to filter by specific days later)
+              if (goal.timeframe === 'weekly') return true;
+              
+              // Show monthly goals (first day of month or if completed on this date)
+              if (goal.timeframe === 'monthly') {
+                return date.getDate() === 1 || (goal.completedDates && goal.completedDates.includes(dateStr));
+              }
+              
+              // Show annual goals (first day of year or if completed on this date)
+              if (goal.timeframe === 'annual') {
+                return (date.getDate() === 1 && date.getMonth() === 0) || (goal.completedDates && goal.completedDates.includes(dateStr));
+              }
+              
+              // Show any goal that was completed on this date
+              if (goal.completedDates && goal.completedDates.includes(dateStr)) return true;
+              
+              return false;
+            }).sort((a, b) => {
+              const timeA = a.time || '00:00';
+              const timeB = b.time || '00:00';
+              return timeA.localeCompare(timeB);
+            });
+          };
+
+          const getListCount = (listId) => {
+            if (listId === 'today') {
+              return (goals.daily || []).filter(g => !g.completed).length;
+            } else if (['daily', 'weekly', 'monthly', 'annual'].includes(listId)) {
+              return (goals[listId] || []).filter(g => !g.completed).length;
+            }
+            return 0;
+          };
+
+          const getCategoryCount = (categoryId) => {
+            const allGoals = getAllGoals();
+            return allGoals.filter(g => g.category === categoryId && !g.completed).length;
+          };
+
+          const getCategoryForGoal = (categoryId) => {
+            return categories.find(c => c.id === categoryId);
+          };
+
+          const getDaysInMonth = (date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            return { daysInMonth, startingDayOfWeek, year, month };
+          };
+
+          const getWeekDays = () => {
+            const days = [];
+            const startOfWeek = new Date(currentDate);
+            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+            
+            for (let i = 0; i < 7; i++) {
+              const day = new Date(startOfWeek);
+              day.setDate(startOfWeek.getDate() + i);
+              days.push(day);
+            }
+            return days;
+          };
+
+          const getStatsData = () => {
+            const last7Days = [];
+            const today = new Date();
+            
+            for (let i = 6; i >= 0; i--) {
+              const date = new Date(today);
+              date.setDate(date.getDate() - i);
+              const dateStr = date.toISOString().split('T')[0];
+              const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+              
+              const completedCount = getAllGoals().filter(g => 
+                g.completedDates && g.completedDates.includes(dateStr)
+              ).length;
+              
+              last7Days.push({ name: dayName, completed: completedCount });
+            }
+            
+            return last7Days;
+          };
+
+          const getLast30DaysData = () => {
+            const last30Days = [];
+            const today = new Date();
+            
+            for (let i = 29; i >= 0; i--) {
+              const date = new Date(today);
+              date.setDate(date.getDate() - i);
+              const dateStr = date.toISOString().split('T')[0];
+              
+              const completedCount = getAllGoals().filter(g => 
+                g.completedDates && g.completedDates.includes(dateStr)
+              ).length;
+              
+              last30Days.push({ day: date.getDate(), completed: completedCount });
+            }
+            
+            return last30Days;
+          };
+
+          const getCategoryStats = () => {
+            return categories.map(cat => {
+              const allGoals = getAllGoals();
+              const categoryGoals = allGoals.filter(g => g.category === cat.id);
+              
+              return {
+                category: cat.name,
+                value: categoryGoals.length,
+                fullMark: Math.max(...categories.map(c => 
+                  allGoals.filter(g => g.category === c.id).length
+                ), 1)
+              };
+            });
+          };
+
+          const getCompletionRate = () => {
+            const allGoals = getAllGoals();
+            if (allGoals.length === 0) return 0;
+            return Math.round((allGoals.filter(g => g.completed).length / allGoals.length) * 100);
+          };
+
+          const getTimeframeStats = () => {
+            return [
+              { name: 'Daily', total: (goals.daily || []).length, completed: (goals.daily || []).filter(g => g.completed).length },
+              { name: 'Weekly', total: (goals.weekly || []).length, completed: (goals.weekly || []).filter(g => g.completed).length },
+              { name: 'Monthly', total: (goals.monthly || []).length, completed: (goals.monthly || []).filter(g => g.completed).length },
+              { name: 'Annual', total: (goals.annual || []).length, completed: (goals.annual || []).filter(g => g.completed).length }
+            ];
+          };
+
+          const getCategoryCompletionStats = () => {
+            return categories.map(cat => {
+              const allGoals = getAllGoals();
+              const categoryGoals = allGoals.filter(g => g.category === cat.id);
+              const completed = categoryGoals.filter(g => g.completed).length;
+              const total = categoryGoals.length;
+              const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+              
+              return {
+                category: cat.name,
+                completed,
+                pending: total - completed,
+                completionRate: rate,
+                total
+              };
+            }).filter(stat => stat.total > 0);
+          };
+
+          const getPriorityStats = () => {
+            const allGoals = getAllGoals();
+            const low = allGoals.filter(g => g.priority === 0);
+            const medium = allGoals.filter(g => g.priority === 1);
+            const high = allGoals.filter(g => g.priority === 2);
+            
+            return [
+              { priority: 'Low', total: low.length, completed: low.filter(g => g.completed).length },
+              { priority: 'Medium', total: medium.length, completed: medium.filter(g => g.completed).length },
+              { priority: 'High', total: high.length, completed: high.filter(g => g.completed).length }
+            ].filter(stat => stat.total > 0);
+          };
+
+          const getStreakData = () => {
+            const allGoals = getAllGoals();
+            let currentStreak = 0;
+            let longestStreak = 0;
+            let tempStreak = 0;
+            const today = new Date();
+            
+            for (let i = 0; i < 30; i++) {
+              const date = new Date(today);
+              date.setDate(date.getDate() - i);
+              const dateStr = date.toISOString().split('T')[0];
+              
+              const completedToday = allGoals.some(g => 
+                g.completedDates && g.completedDates.includes(dateStr)
+              );
+              
+              if (completedToday) {
+                tempStreak++;
+                if (i === 0) currentStreak = tempStreak;
+              } else {
+                if (tempStreak > longestStreak) longestStreak = tempStreak;
+                tempStreak = 0;
+              }
+            }
+            
+            if (tempStreak > longestStreak) longestStreak = tempStreak;
+            
+            return { currentStreak, longestStreak };
+          };
+
+          const activeListInfo = lists.find(l => l.id === activeList);
+          const activeCategoryInfo = categories.find(c => c.id === activeList);
+          const displayGoals = getDisplayGoals();
+
+          const COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4'];
+          const hours = Array.from({ length: 24 }, (_, i) => i);
+
+          return React.createElement('div', { className: "flex h-screen bg-gray-50" },
+            React.createElement('div', { className: "w-64 bg-white border-r border-gray-200 flex flex-col" },
+              React.createElement('div', { className: "h-14 flex items-center px-4 border-b border-gray-200" },
+                React.createElement('div', { className: "flex items-center gap-2" },
+                  React.createElement('div', { className: "w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center" },
+                    React.createElement(Target, { size: 16, className: "text-white" })
+                  ),
+                  React.createElement('span', { className: "font-semibold text-gray-900 text-sm" }, 'GoalTracker')
+                )
+              ),
+              React.createElement('div', { className: "flex-1 overflow-y-auto py-3" },
+                React.createElement('nav', { className: "px-2 space-y-0.5" },
+                  lists.map(list => {
+                    const Icon = list.icon;
+                    const count = getListCount(list.id);
+                    return React.createElement('button', {
+                      key: list.id,
+                      onClick: () => {
+                        setActiveList(list.id);
+                        setActiveView('list');
+                      },
+                      className: `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                        activeList === list.id && activeView === 'list'
+                          ? 'bg-gray-100 text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`
+                    },
+                      React.createElement(Icon, { size: 16, style: { color: activeList === list.id ? list.color : undefined } }),
+                      React.createElement('span', { className: "flex-1 text-left font-medium" }, list.name),
+                      count > 0 && React.createElement('span', { className: "text-xs text-gray-400 font-normal" }, count)
+                    );
+                  })
+                ),
+                React.createElement('div', { className: "mt-6 px-2" },
+                  React.createElement('div', { className: "px-3 mb-2" },
+                    React.createElement('h3', { className: "text-xs font-semibold text-gray-400 uppercase tracking-wide" }, 'Views')
+                  ),
+                  React.createElement('div', { className: "space-y-0.5" },
+                    React.createElement('button', {
+                      onClick: () => setActiveView('calendar'),
+                      className: `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                        activeView === 'calendar' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                      }`
+                    },
+                      React.createElement(Calendar, { size: 16 }),
+                      React.createElement('span', { className: "flex-1 text-left font-medium" }, 'Calendar')
+                    ),
+                    React.createElement('button', {
+                      onClick: () => setActiveView('stats'),
+                      className: `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                        activeView === 'stats' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                      }`
+                    },
+                      React.createElement(BarChart3, { size: 16 }),
+                      React.createElement('span', { className: "flex-1 text-left font-medium" }, 'Statistics')
+                    ),
+                    React.createElement('button', {
+                      onClick: () => setActiveView('notes'),
+                      className: `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                        activeView === 'notes' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                      }`
+                    },
+                      React.createElement(Edit2, { size: 16 }),
+                      React.createElement('span', { className: "flex-1 text-left font-medium" }, 'Notes')
+                    )
+                  )
+                ),
+                React.createElement('div', { className: "mt-6 px-2" },
+                  React.createElement('div', { className: "px-3 mb-2 flex items-center justify-between" },
+                    React.createElement('h3', { className: "text-xs font-semibold text-gray-400 uppercase tracking-wide" }, 'Lists'),
+                    React.createElement('button', {
+                      onClick: () => {
+                        setEditingList(null);
+                        setNewListName('');
+                        setNewListColor('#4A90E2');
+                        setNewListIcon('List');
+                        setShowListManager(true);
+                      },
+                      className: "text-blue-600 hover:text-blue-700",
+                      title: "Add new list"
+                    },
+                      React.createElement(Plus, { size: 14 })
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-0.5" },
+                    categories.map(cat => {
+                      const count = getCategoryCount(cat.id);
+                      const Icon = cat.icon;
+                      return React.createElement('div', {
+                        key: cat.id,
+                        className: "relative group"
+                      },
+                        React.createElement('button', {
+                          onClick: () => {
+                            setActiveList(cat.id);
+                            setActiveView('list');
+                          },
+                          className: `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                            activeList === cat.id && activeView === 'list'
+                              ? 'bg-gray-100 text-gray-900'
+                              : 'text-gray-600 hover:bg-gray-50'
+                          }`
+                        },
+                          Icon && React.createElement(Icon, { size: 16, style: { color: cat.color } }),
+                          React.createElement('span', { className: "flex-1 text-left font-medium" }, cat.name),
+                          count > 0 && React.createElement('span', { className: "text-xs text-gray-400 font-normal" }, count),
+                          React.createElement('div', { 
+                            className: "opacity-0 group-hover:opacity-100 flex gap-1 ml-2",
+                            onClick: (e) => e.stopPropagation()
+                          },
+                            React.createElement('button', {
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                if (cat.isDefault) {
+                                  editDefaultCategory(cat.id);
+                                } else {
+                                  editCustomCategory(cat.id);
+                                }
+                              },
+                              className: "p-0.5 text-gray-400 hover:text-blue-600 rounded",
+                              title: "Edit category"
+                            },
+                              React.createElement(Edit2, { size: 12 })
+                            ),
+                            React.createElement('button', {
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                if (cat.isDefault) {
+                                  deleteDefaultCategory(cat.id);
+                                } else {
+                                  deleteCustomCategory(cat.id);
+                                }
+                              },
+                              className: "p-0.5 text-gray-400 hover:text-red-600 rounded",
+                              title: "Delete category"
+                            },
+                              React.createElement(Trash2, { size: 12 })
+                            )
+                          )
+                        )
+                      );
+                    })
+                  )
+                ),
+                // Clear All Data Button
+                React.createElement('div', { className: "mt-auto pt-4 px-2 border-t border-gray-200" },
+                  React.createElement('button', {
+                    onClick: () => {
+                      if (confirm('âš ï¸ WARNING: This will delete ALL your data!\n\nThis includes:\nâ€¢ All goals and tasks\nâ€¢ All custom categories\nâ€¢ All completion history\nâ€¢ All settings\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?')) {
+                        if (confirm('Last chance! Are you 100% sure you want to delete everything?')) {
+                          // Clear all localStorage
+                          localStorage.clear();
+                          // Reset state
+                      setGoals({ daily: [], weekly: [], monthly: [], annual: [] });
+                          setCustomCategories([]);
+                          setDefaultCategories([
+                            { id: 'health', name: 'Health & Fitness', icon: Heart, iconName: 'Heart', color: '#EF4444', isDefault: true },
+                            { id: 'career', name: 'Career', icon: Briefcase, iconName: 'Briefcase', color: '#3B82F6', isDefault: true },
+                            { id: 'finance', name: 'Finance', icon: DollarSign, iconName: 'DollarSign', color: '#10B981', isDefault: true },
+                            { id: 'education', name: 'Education', icon: BookOpen, iconName: 'BookOpen', color: '#F59E0B', isDefault: true },
+                            { id: 'relationships', name: 'Relationships', icon: Users, iconName: 'Users', color: '#8B5CF6', isDefault: true },
+                            { id: 'personal', name: 'Personal', icon: Home, iconName: 'Home', color: '#06B6D4', isDefault: true }
+                          ]);
+                          alert('âœ… All data has been cleared!\n\nYour app is now completely empty and ready for your real data.');
+                        }
+                      }
+                    },
+                    className: "w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                  },
+                    React.createElement(Trash2, { size: 14 }),
+                    'Clell Data'
+                  )
+                )
+              )
+            ),
+            React.createElement('div', { className: "flex-1 flex flex-col overflow-hidden" },
+              React.createElement('div', { className: "h-14 bg-white border-b border-gray-200 flex items-center px-6 justify-between" },
+                React.createElement('h1', { className: "text-lg font-semibold text-gray-900" },
+                  activeView === 'calendar' ? 'Calendar' :
+                  activeView === 'stats' ? 'Statistics' :
+                  activeView === 'notes' ? 'Notes' :
+                  activeListInfo?.name || activeCategoryInfo?.name || 'Goals'
+                ),
+                activeView === 'calendar' && React.createElement('div', { className: "flex gap-1 bg-gray-100 rounded-lg p-1" },
+                  ['week', 'month'].map(view =>
+                    React.createElement('button', {
+                      key: view,
+                      onClick: () => setCalendarView(view),
+                      className: `px-3 py-1 text-xs font-medium rounded capitalize ${
+                        calendarView === view ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                      }`
+                    }, view)
+                  )
+                )
+              ),
+              showListManager && React.createElement('div', { 
+                className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
+                onClick: () => {
+                  setShowListManager(false);
+                  setEditingList(null);
+                  setNewListName('');
+                }
+              },
+                React.createElement('div', { 
+                  className: "bg-white rounded-lg p-6 w-96 shadow-xl",
+                  onClick: (e) => e.stopPropagation()
+                },
+                  React.createElement('h2', { className: "text-xl font-semibold mb-4" }, editingList ? 'Edit Category' : 'New Category'),
+                  React.createElement('div', { className: "mb-4" },
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, 'Category Name'),
+                    React.createElement('input', {
+                      type: "text",
+                      value: newListName,
+                      onChange: (e) => setNewListName(e.target.value),
+                      placeholder: "e.g., Work Projects, Side Hustles...",
+                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                      onKeyPress: (e) => e.key === 'Enter' && (editingList ? updateCustomCategory() : addCustomCategory())
+                    })
+                  ),
+                  React.createElement('div', { className: "mb-4" },
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, 'Icon'),
+                    React.createElement('div', { className: "grid grid-cols-6 gap-2" },
+                      availableIcons.map(iconObj => {
+                        const IconComponent = iconObj.component;
+                        return React.createElement('button', {
+                          key: iconObj.name,
+                          onClick: () => setNewListIcon(iconObj.name),
+                          className: `p-3 rounded-lg border-2 transition-all ${newListIcon === iconObj.name ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`,
+                          title: iconObj.name
+                        },
+                          React.createElement(IconComponent, { size: 20, className: newListIcon === iconObj.name ? 'text-blue-600' : 'text-gray-600' })
+                        );
+                      })
+                    )
+                  ),
+                  React.createElement('div', { className: "mb-6" },
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, 'Color'),
+                    React.createElement('div', { className: "flex gap-2 flex-wrap" },
+                      ['#4A90E2', '#22C55E', '#F59E0B', '#EC4899', '#8B5CF6', '#EF4444', '#10B981', '#06B6D4'].map(color =>
+                        React.createElement('button', {
+                          key: color,
+                          onClick: () => setNewListColor(color),
+                          className: `w-8 h-8 rounded-full transition-transform ${newListColor === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`,
+                          style: { backgroundColor: color }
+                        })
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: "flex gap-2 justify-end" },
+                    React.createElement('button', {
+                      onClick: () => {
+                        setShowListManager(false);
+                        setEditingList(null);
+                        setNewListName('');
+                      },
+                      className: "px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    }, 'Cancel'),
+                    React.createElement('button', {
+                      onClick: editingList ? updateCustomCategory : addCustomCategory,
+                      className: "px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    }, editingList ? 'Update' : 'Create')
+                  )
+                )
+              ),
+              React.createElement('div', { className: "flex-1 overflow-auto p-6" },
+                activeView === 'list' && React.createElement('div', { className: "max-w-3xl" },
+                  React.createElement('div', { className: "mb-6" },
+                    React.createElement('button', {
+                      onClick: () => setShowAddTask(!showAddTask),
+                      className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                    },
+                      React.createElement(Plus, { size: 16 }),
+                      'Add Goal'
+                    )
+                  ),
+                  showAddTask && React.createElement('div', { className: "mb-6 p-4 bg-white rounded-lg border border-gray-200" },
+                    selectedDateForTask && React.createElement('div', { className: "mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between" },
+                      React.createElement('span', { className: "text-sm text-blue-700" },
+                        `Adding task for ${selectedDateForTask.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                      ),
+                      React.createElement('button', {
+                        onClick: () => setSelectedDateForTask(null),
+                        className: "text-blue-600 hover:text-blue-800"
+                      },
+                        React.createElement(X, { size: 16 })
+                      )
+                    ),
+                    React.createElement('input', {
+                      type: "text",
+                      value: newGoalText,
+                      onChange: (e) => setNewGoalText(e.target.value),
+                      placeholder: "Enter goal...",
+                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3",
+                      onKeyPress: (e) => e.key === 'Enter' && addGoal()
+                    }),
+                    React.createElement('div', { className: "grid grid-cols-2 gap-3 mb-3" },
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'Category'),
+                        React.createElement('select', {
+                          value: selectedCategory,
+                          onChange: (e) => setSelectedCategory(e.target.value),
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        },
+                          categories.map(cat =>
+                            React.createElement('option', { key: cat.id, value: cat.id }, cat.name)
+                          )
+                        )
+                      ),
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'Timeframe'),
+                        React.createElement('select', {
+                          value: selectedTimeframe,
+                          onChange: (e) => setSelectedTimeframe(e.target.value),
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        },
+                          React.createElement('option', { value: 'daily' }, 'Daily'),
+                          React.createElement('option', { value: 'weekly' }, 'Weekly'),
+                          React.createElement('option', { value: 'monthly' }, 'Monthly'),
+                          React.createElement('option', { value: 'annual' }, 'Annual')
+                        )
+                      )
+                    ),
+                    React.createElement('div', { className: "grid grid-cols-2 gap-3 mb-3" },
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'Time'),
+                        React.createElement('input', {
+                          type: "time",
+                          value: selectedTime,
+                          onChange: (e) => setSelectedTime(e.target.value),
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        })
+                      ),
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'Target (optional)'),
+                        React.createElement('input', {
+                          type: "number",
+                          value: targetCompletions || '',
+                          onChange: (e) => setTargetCompletions(parseInt(e.target.value) || 0),
+                          placeholder: "e.g., 50 times",
+                          min: "0",
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        })
+                      )
+                    ),
+                    React.createElement('div', { className: "flex items-center gap-3 mb-3" },
+                      React.createElement('label', { className: "flex items-center gap-2 cursor-pointer" },
+                        React.createElement('input', {
+                          type: "checkbox",
+                          checked: isRecurring,
+                          onChange: (e) => setIsRecurring(e.target.checked),
+                          className: "w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
+                        }),
+                        React.createElement('span', { className: "text-sm text-gray-700" }, 'Recurring')
+                      ),
+                      React.createElement('label', { className: "flex items-center gap-2 cursor-pointer" },
+                        React.createElement('input', {
+                          type: "checkbox",
+                          checked: isReminder,
+                          onChange: (e) => setIsReminder(e.target.checked),
+                          className: "w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
+                        }),
+                        React.createElement('span', { className: "text-sm text-gray-700" }, 'Reminder (hide from calendar)')
+                      )
+                    ),
+                    React.createElement('div', { className: "grid grid-cols-2 gap-3 mb-3" },
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'Start Date/Time (optional)'),
+                        React.createElement('input', {
+                          type: "datetime-local",
+                          value: startDateTime,
+                          onChange: (e) => setStartDateTime(e.target.value),
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        })
+                      ),
+                      React.createElement('div', {},
+                        React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, 'End Date/Time (optional)'),
+                        React.createElement('input', {
+                          type: "datetime-local",
+                          value: endDateTime,
+                          onChange: (e) => setEndDateTime(e.target.value),
+                          className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        })
+                      )
+                    ),
+                    React.createElement('div', { className: "flex gap-2" },
+                      React.createElement('button', {
+                        onClick: addGoal,
+                        className: "px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                      }, 'Add'),
+                      React.createElement('button', {
+                        onClick: () => {
+                          setShowAddTask(false);
+                          setNewGoalText('');
+                        },
+                        className: "px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                      }, 'Cancel')
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-2" },
+                    displayGoals.length === 0 ? 
+                      React.createElement('div', { className: "text-center py-12 text-gray-400" },
+                        React.createElement('p', {}, 'No goals yet. Add one to get started!')
+                      ) :
+                      displayGoals.map(goal => {
+                        const category = getCategoryForGoal(goal.category);
+                        if (!category) return null;
+                        
+                        const CategoryIcon = category.icon;
+                        const timeframe = goal.timeframe;
+                        
+                        return React.createElement('div', {
+                          key: goal.id,
+                          className: "bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+                        },
+                          React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('button', {
+                              onClick: () => toggleGoal(goal.id, timeframe),
+                              className: `flex-shrink-0 w-5 h-5 rounded-full border-2 transition-all mt-0.5 ${
+                                goal.completed
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-gray-300 hover:border-blue-400'
+                              }`
+                            },
+                              goal.completed && React.createElement('div', { className: "w-full h-full flex items-center justify-center" },
+                                React.createElement('svg', { className: "w-3 h-3 text-white", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
+                                  React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 3, d: "M5 13l4 4L19 7" })
+                                )
+                              )
+                            ),
+                            React.createElement('div', { className: "flex-1 min-w-0" },
+                              React.createElement('div', { className: "flex items-start justify-between gap-2 mb-1" },
+                                React.createElement('span', {
+                                  className: `text-sm font-medium ${goal.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`
+                                }, goal.text),
+                                React.createElement('button', {
+                                  onClick: () => deleteGoal(goal.id, timeframe),
+                                  className: "flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                                },
+                                  React.createElement(Trash2, { size: 16 })
+                                )
+                              ),
+                              React.createElement('div', { className: "flex items-center gap-3 text-xs text-gray-500" },
+                                React.createElement('div', { className: "flex items-center gap-1" },
+                                  React.createElement(Clock, { size: 12 }),
+                                  React.createElement('span', {}, goal.time)
+                                ),
+                                CategoryIcon && React.createElement('div', { className: "flex items-center gap-1" },
+                                  React.createElement(CategoryIcon, { size: 12, style: { color: category.color } }),
+                                  React.createElement('span', {}, category.name)
+                                ),
+                                goal.targetCompletions && React.createElement('div', { 
+                                  className: "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                                  style: { 
+                                    backgroundColor: category.color + '20',
+                                    color: category.color
+                                  }
+                                },
+                                  React.createElement(Target, { size: 12 }),
+                                  React.createElement('span', { className: "font-semibold" }, 
+                                    `${(goal.completedDates || []).length}/${goal.targetCompletions}`
+                                  )
+                                ),
+                                goal.recurring && React.createElement('div', { className: "flex items-center gap-1" },
+                                  React.createElement(Repeat, { size: 12 }),
+                                  React.createElement('span', {}, 'Recurring')
+                                ),
+                                React.createElement('div', { className: "flex gap-1 ml-auto" },
+                                  [0, 1, 2].map(p =>
+                                    React.createElement('button', {
+                                      key: p,
+                                      onClick: () => setPriority(goal.id, timeframe, p),
+                                      className: "transition-colors",
+                                      title: p === 0 ? 'Low' : p === 1 ? 'Medium' : 'High'
+                                    },
+                                      React.createElement(Flag, {
+                                        size: 14,
+                                        className: goal.priority >= p ? 'text-orange-500' : 'text-gray-300',
+                                        fill: goal.priority >= p ? 'currentColor' : 'none'
+                                      })
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        );
+                      })
+                  )
+                ),
+                activeView === 'calendar' && React.createElement('div', {},
+                  React.createElement('div', { className: "flex items-center justify-between mb-6" },
+                    React.createElement('h2', { className: "text-xl font-semibold text-gray-900" },
+                      currentDate.toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        year: 'numeric',
+                        ...(calendarView === 'week' && { day: 'numeric' })
+                      })
+                    ),
+                    React.createElement('div', { className: "flex gap-2" },
+                      React.createElement('button', {
+                        onClick: () => {
+                          const newDate = new Date(currentDate);
+                          if (calendarView === 'day') newDate.setDate(newDate.getDate() - 1);
+                          else if (calendarView === 'week') newDate.setDate(newDate.getDate() - 7);
+                          else newDate.setMonth(newDate.getMonth() - 1);
+                          setCurrentDate(newDate);
+                        },
+                        className: "p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      },
+                        React.createElement(ChevronLeft, { size: 20 })
+                      ),
+                      React.createElement('button', {
+                        onClick: () => setCurrentDate(new Date()),
+                        className: "px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                      }, 'Today'),
+                      React.createElement('button', {
+                        onClick: () => {
+                          const newDate = new Date(currentDate);
+                          if (calendarView === 'day') newDate.setDate(newDate.getDate() + 1);
+                          else if (calendarView === 'week') newDate.setDate(newDate.getDate() + 7);
+                          else newDate.setMonth(newDate.getMonth() + 1);
+                          setCurrentDate(newDate);
+                        },
+                        className: "p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      },
+                        React.createElement(ChevronRight, { size: 20 })
+                      )
+                    )
+                  ),
+                  calendarView === 'month' && (() => {
+                    const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
+                    const days = [];
+                    
+                    for (let i = 0; i < startingDayOfWeek; i++) {
+                      days.push(React.createElement('div', { key: `empty-${i}`, className: "aspect-square" }));
+                    }
+                    
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const date = new Date(year, month, day);
+                      const dateStr = date.toISOString().split('T')[0];
+                      const goalsForDay = getGoalsForDate(date);
+                      const isToday = dateStr === new Date().toISOString().split('T')[0];
+                      
+                      days.push(
+                        React.createElement('div', {
+                          key: day,
+                          className: `aspect-square border border-gray-200 p-2 ${isToday ? 'bg-blue-50 border-blue-500' : 'bg-white'} hover:bg-gray-50 transition-colors relative group`
+                        },
+                          React.createElement('div', { className: "h-full flex flex-col" },
+                            React.createElement('div', { className: "flex items-center justify-between mb-1" },
+                              React.createElement('div', { className: `text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}` }, day),
+                              React.createElement('button', {
+                                onClick: () => addGoalToDate(date),
+                                className: "opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity",
+                                title: "Add task to this date"
+                              },
+                                React.createElement(Plus, { size: 12 })
+                              )
+                            ),
+                            React.createElement('div', { className: "flex-1 overflow-y-auto space-y-1" },
+                              goalsForDay.slice(0, 3).map(goal => {
+                                const category = getCategoryForGoal(goal.category);
+                                if (!category) return null;
+                                
+                                const isCompleted = goal.completedDates?.includes(dateStr);
+                                return React.createElement('div', {
+                                  key: goal.id,
+                                  className: "group/task flex items-center gap-1"
+                                },
+                                  React.createElement('button', {
+                                    onClick: () => toggleGoalFromCalendar(goal.id, goal.timeframe, date),
+                                    className: `flex-1 text-left text-xs px-1.5 py-0.5 rounded truncate transition-all ${isCompleted ? 'line-through opacity-50' : 'hover:opacity-75'}`,
+                                    style: { 
+                                      backgroundColor: isCompleted ? '#d1d5db' : category?.color + '20', 
+                                      color: isCompleted ? '#6b7280' : category?.color,
+                                      textDecorationThickness: '2px'
+                                    },
+                                    title: `${goal.text} - Click to ${isCompleted ? 'uncomplete' : 'complete'}`
+                                  },
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                      React.createElement('span', { className: `inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isCompleted ? 'bg-current' : 'border border-current'}` }),
+                                      goal.text
+                                    )
+                                  ),
+                                  React.createElement('button', {
+                                    onClick: (e) => {
+                                      e.stopPropagation();
+                                      deleteGoal(goal.id, goal.timeframe);
+                                    },
+                                    className: "opacity-0 group-hover/task:opacity-100 p-0.5 text-gray-400 hover:text-red-600 transition-opacity flex-shrink-0",
+                                    title: "Delete task"
+                                  },
+                                    React.createElement(Trash2, { size: 10 })
+                                  )
+                                );
+                              }),
+                              goalsForDay.length > 3 && React.createElement('div', { className: "text-xs text-gray-500 px-1" }, 
+                                `+${goalsForDay.length - 3} more`
+                              )
+                            )
+                          )
+                        )
+                      );
+                    }
+                    
+                    return React.createElement('div', {},
+                      React.createElement('div', { className: "grid grid-cols-7 gap-0 mb-2" },
+                        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
+                          React.createElement('div', { key: day, className: "text-center text-xs font-semibold text-gray-600 py-2" }, day)
+                        )
+                      ),
+                      React.createElement('div', { className: "grid grid-cols-7 gap-0 border border-gray-200" }, days)
+                    );
+                  })(),
+                  calendarView === 'week' && (() => {
+                    const weekDays = getWeekDays();
+                    
+                    return React.createElement('div', { className: "bg-white rounded-lg border border-gray-200 overflow-x-auto" },
+                      React.createElement('div', { className: "flex" },
+                        // Hours column
+                        React.createElement('div', { className: "flex-shrink-0 w-16 border-r border-gray-200" },
+                          React.createElement('div', { className: "h-16 border-b border-gray-200" }), // Empty corner
+                          hours.map(hour => {
+                            const hourStr = hour.toString().padStart(2, '0') + ':00';
+                            return React.createElement('div', { 
+                              key: hour, 
+                              className: "min-h-[80px] flex items-start justify-center p-2 text-xs text-gray-500 font-medium border-b border-gray-100" 
+                            }, hourStr);
+                          })
+                        ),
+                        // Days columns
+                        weekDays.map(day => {
+                          const dateStr = day.toISOString().split('T')[0];
+                          const goalsForDay = getGoalsForDate(day);
+                          const isToday = dateStr === new Date().toISOString().split('T')[0];
+                          
+                          return React.createElement('div', { 
+                            key: dateStr, 
+                            className: `flex-1 min-w-[120px] border-r border-gray-200 last:border-r-0 ${isToday ? 'bg-blue-50' : ''}`
+                          },
+                            // Day header
+                            React.createElement('div', { 
+                              className: `h-16 p-2 border-b border-gray-200 ${isToday ? 'bg-blue-100' : 'bg-gray-50'} relative group`
+                            },
+                              React.createElement('div', { className: `text-center ${isToday ? 'text-blue-600' : 'text-gray-900'}` },
+                                React.createElement('div', { className: "text-xs font-medium mb-1" }, 
+                                  day.toLocaleDateString('en-US', { weekday: 'short' })
+                                ),
+                                React.createElement('div', { 
+                                  className: `text-lg font-semibold ${isToday ? 'bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto' : ''}` 
+                                }, day.getDate())
+                              ),
+                              React.createElement('button', {
+                                onClick: () => addGoalToDate(day),
+                                className: "absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity",
+                                title: "Add task to this date"
+                              },
+                                React.createElement(Plus, { size: 14 })
+                              )
+                            ),
+                            // Hour slots
+                            hours.map(hour => {
+                              const hourStr = hour.toString().padStart(2, '0');
+                              const goalsAtHour = goalsForDay.filter(g => g.time?.startsWith(hourStr));
+                              
+                              return React.createElement('div', { 
+                                key: hour, 
+                                className: "min-h-[80px] p-2 border-b border-gray-100 relative"
+                              },
+                                goalsAtHour.map(goal => {
+                                  const category = getCategoryForGoal(goal.category);
+                                  if (!category) return null;
+                                  
+                                  const isCompleted = goal.completedDates?.includes(dateStr);
+                                  
+                                  return React.createElement('div', {
+                                    key: goal.id,
+                                    className: "group/task relative mb-1"
+                                  },
+                                    React.createElement('button', {
+                                      onClick: () => toggleGoalFromCalendar(goal.id, goal.timeframe, day),
+                                      className: `w-full text-left text-xs p-2 rounded transition-all ${isCompleted ? 'line-through opacity-60' : 'hover:opacity-75'}`,
+                                      style: { 
+                                        backgroundColor: isCompleted ? '#d1d5db' : category.color + '20', 
+                                        borderLeft: `3px solid ${category.color}`,
+                                        textDecorationThickness: '1px'
+                                      },
+                                      title: `${goal.text} - Click to ${isCompleted ? 'uncomplete' : 'complete'}`
+                                    },
+                                      React.createElement('div', { 
+                                        className: "text-gray-900 mb-1"
+                                      }, goal.text),
+                                      React.createElement('div', { 
+                                        className: "text-xs opacity-70",
+                                        style: { color: category.color }
+                                      }, goal.time)
+                                    ),
+                                    React.createElement('button', {
+                                      onClick: (e) => {
+                                        e.stopPropagation();
+                                        deleteGoal(goal.id, goal.timeframe);
+                                      },
+                                      className: "absolute top-1 right-1 opacity-0 group-hover/task:opacity-100 p-0.5 bg-white rounded shadow-sm text-gray-400 hover:text-red-600 transition-opacity",
+                                      title: "Delete task"
+                                    },
+                                      React.createElement(Trash2, { size: 12 })
+                                    )
+                                  );
+                                })
+                              );
+                            })
+                          );
+                        })
+                      )
+                    );
+                  })(),
+                  calendarView === 'day' && (() => {
+                    const goalsForDay = getGoalsForDate(currentDate);
+                    
+                    return React.createElement('div', { className: "bg-white rounded-lg border border-gray-200 overflow-hidden" },
+                      React.createElement('div', { className: "relative" },
+                        hours.map(hour => {
+                          const hourStr = hour.toString().padStart(2, '0') + ':00';
+                          const goalsAtHour = goalsForDay.filter(g => g.time?.startsWith(hourStr.substring(0, 2)));
+                          
+                          return React.createElement('div', { key: hour, className: "flex border-b border-gray-100" },
+                            React.createElement('div', { className: "w-20 flex-shrink-0 p-3 text-xs text-gray-500 font-medium" }, hourStr),
+                            React.createElement('div', { className: "flex-1 p-2 space-y-2 min-h-[60px]" },
+                              goalsAtHour.map(goal => {
+                                const category = getCategoryForGoal(goal.category);
+                                if (!category) return null;
+                                
+                                const CategoryIcon = category.icon;
+                                const dateStr = currentDate.toISOString().split('T')[0];
+                                const isCompleted = goal.completedDates?.includes(dateStr);
+                                
+                                return React.createElement('div', {
+                                  key: goal.id,
+                                  className: "group/task relative"
+                                },
+                                  React.createElement('button', {
+                                    onClick: () => toggleGoalFromCalendar(goal.id, goal.timeframe, currentDate),
+                                    className: `w-full text-left p-3 rounded-lg transition-all ${isCompleted ? 'line-through opacity-60' : 'hover:opacity-75'}`,
+                                    style: { 
+                                      backgroundColor: isCompleted ? '#d1d5db' : category.color + '20', 
+                                      borderLeft: `4px solid ${category.color}`,
+                                      textDecorationThickness: '2px'
+                                    },
+                                    title: `${goal.text} - Click to ${isCompleted ? 'uncomplete' : 'complete'}`
+                                  },
+                                    React.createElement('div', { className: "flex items-center gap-2 mb-1" },
+                                      React.createElement('span', { className: `inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-current' : 'border border-current'}`, style: { color: isCompleted ? '#9ca3af' : category.color } }),
+                                      CategoryIcon && React.createElement(CategoryIcon, { size: 14, style: { color: isCompleted ? '#9ca3af' : category.color } }),
+                                      React.createElement('span', { className: "text-sm font-medium", style: { color: isCompleted ? '#9ca3af' : category.color } }, goal.time)
+                                    ),
+                                    React.createElement('div', { className: "text-sm font-medium", style: { color: isCompleted ? '#9ca3af' : '#111827' } }, goal.text),
+                                    React.createElement('div', { className: "text-xs mt-1", style: { color: isCompleted ? '#9ca3af' : '#6b7280' } }, category.name)
+                                  ),
+                                  React.createElement('button', {
+                                    onClick: (e) => {
+                                      e.stopPropagation();
+                                      deleteGoal(goal.id, goal.timeframe);
+                                    },
+                                    className: "absolute top-2 right-2 opacity-0 group-hover/task:opacity-100 p-1 bg-white rounded shadow-sm text-gray-400 hover:text-red-600 transition-opacity",
+                                    title: "Delete task"
+                                  },
+                                    React.createElement(Trash2, { size: 12 })
+                                  )
+                                );
+                              })
+                            )
+                          );
+                        })
+                      )
+                    );
+                  })()
+                ),
+                activeView === 'stats' && (() => {
+                  try {
+                    const streakData = getStreakData();
+                    const completionRate = getCompletionRate();
+                    const allGoals = getAllGoals();
+                    const completedGoals = allGoals.filter(g => g.completed).length;
+                    const categoryStats = getCategoryCompletionStats();
+                  
+                  // Get time range based on selected period
+                  const getTimeRange = () => {
+                    const now = new Date();
+                    const startDate = new Date();
+                    
+                    switch(statsTimePeriod) {
+                      case 'week':
+                        startDate.setDate(now.getDate() - 7);
+                        break;
+                      case 'month':
+                        startDate.setMonth(now.getMonth() - 1);
+                        break;
+                      case 'year':
+                        startDate.setFullYear(now.getFullYear() - 1);
+                        break;
+                      case 'all':
+                        startDate.setFullYear(2000); // Far in the past
+                        break;
+                    }
+                    
+                    return { startDate, endDate: now };
+                  };
+                  
+                  // Get period data for selected time range
+                  const getPeriodData = () => {
+                    const { startDate, endDate } = getTimeRange();
+                    const data = [];
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    
+                    let daysToShow = statsTimePeriod === 'week' ? 7 : statsTimePeriod === 'month' ? 30 : statsTimePeriod === 'year' ? 12 : 7;
+                    
+                    if (statsTimePeriod === 'year') {
+                      // Show monthly data for year view
+                      for (let i = 11; i >= 0; i--) {
+                        const date = new Date();
+                        date.setMonth(date.getMonth() - i);
+                        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+                        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+                        
+                        let completed = 0;
+                        Object.values(goals).forEach(goalArray => {
+                          if (Array.isArray(goalArray)) {
+                            goalArray.forEach(goal => {
+                              if (goal.completedDates) {
+                                completed += goal.completedDates.filter(d => {
+                                  const goalDate = new Date(d);
+                                  return goalDate >= monthStart && goalDate <= monthEnd;
+                                }).length;
+                              }
+                            });
+                          }
+                        });
+                        
+                        data.push({
+                          day: months[date.getMonth()],
+                          date: monthStart.toISOString().split('T')[0],
+                          completed: completed
+                        });
+                      }
+                    } else {
+                      // Show daily data
+                      for (let i = daysToShow - 1; i >= 0; i--) {
+                        const date = new Date();
+                        date.setDate(date.getDate() - i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        
+                        let completed = 0;
+                        Object.values(goals).forEach(goalArray => {
+                          if (Array.isArray(goalArray)) {
+                            goalArray.forEach(goal => {
+                              if (goal.completedDates && goal.completedDates.includes(dateStr)) {
+                                completed++;
+                              }
+                            });
+                          }
+                        });
+                        
+                        data.push({
+                          day: statsTimePeriod === 'week' ? days[date.getDay()] : date.getDate().toString(),
+                          date: dateStr,
+                          completed: completed
+                        });
+                      }
+                    }
+                    
+                    return data;
+                  };
+                  
+                  // Get stats for selected time period
+                  const getPeriodStats = () => {
+                    const { startDate } = getTimeRange();
+                    let totalCompleted = 0;
+                    let totalTasks = 0;
+                    
+                    allGoals.forEach(goal => {
+                      totalTasks++;
+                      if (goal.completedDates) {
+                        totalCompleted += goal.completedDates.filter(d => new Date(d) >= startDate).length;
+                      }
+                    });
+                    
+                    return { totalCompleted, totalTasks };
+                  };
+                  
+                  const periodData = getPeriodData();
+                  const periodStats = getPeriodStats();
+                  
+                  // Get detailed task performance
+                  const getTaskPerformance = () => {
+                    const { startDate } = getTimeRange();
+                    return allGoals.map(goal => {
+                      const completedCount = (goal.completedDates || []).length;
+                      const periodCompletedCount = (goal.completedDates || []).filter(d => new Date(d) >= startDate).length;
+                      const category = getCategoryForGoal(goal.category);
+                      return {
+                        id: goal.id,
+                        text: goal.text,
+                        category: category?.name || 'Unknown',
+                        categoryColor: category?.color || '#gray',
+                        timeframe: goal.timeframe,
+                        completed: goal.completed,
+                        completedCount: completedCount,
+                        periodCompletedCount: periodCompletedCount,
+                        targetCompletions: goal.targetCompletions,
+                        priority: goal.priority || 0
+                      };
+                    }).sort((a, b) => b.periodCompletedCount - a.periodCompletedCount);
+                  };
+                  
+                  // Get timeframe breakdown
+                  const getTimeframeBreakdown = () => {
+                    const timeframes = {
+                      daily: { total: 0, completed: 0 },
+                      weekly: { total: 0, completed: 0 },
+                      monthly: { total: 0, completed: 0 },
+                      annual: { total: 0, completed: 0 }
+                    };
+                    
+                    allGoals.forEach(goal => {
+                      if (timeframes[goal.timeframe]) {
+                        timeframes[goal.timeframe].total++;
+                        if (goal.completed) {
+                          timeframes[goal.timeframe].completed++;
+                        }
+                      }
+                    });
+                    
+                    return Object.entries(timeframes).map(([name, data]) => ({
+                      name: name.charAt(0).toUpperCase() + name.slice(1),
+                      total: data.total,
+                      completed: data.completed,
+                      pending: data.total - data.completed,
+                      rate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0
+                    }));
+                  };
+                  
+                  const taskPerformance = getTaskPerformance();
+                  const timeframeBreakdown = getTimeframeBreakdown();
+                  
+                  return React.createElement('div', { className: "w-full max-w-7xl mx-auto" },
+                    // Header with Tabs and Time Period Selector
+                    React.createElement('div', { className: "flex justify-between items-center mb-6" },
+                      // Tabs
+                      React.createElement('div', { className: "flex gap-2" },
+                        [
+                          { id: 'overview', label: 'Overview' },
+                          { id: 'tasks', label: 'Task Performance' },
+                          { id: 'categories', label: 'Category Analysis' }
+                        ].map(tab =>
+                          React.createElement('button', {
+                            key: tab.id,
+                            onClick: () => setStatsTab(tab.id),
+                            className: `px-6 py-3 rounded-lg font-medium transition-colors ${
+                              statsTab === tab.id 
+                                ? 'bg-blue-500 text-white shadow-lg' 
+                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                            }`
+                          }, tab.label)
+                        )
+                      ),
+                      // Time Period Selector
+                      React.createElement('div', { className: "flex gap-2 bg-white border border-gray-200 rounded-lg p-1" },
+                        [
+                          { id: 'week', label: 'Week' },
+                          { id: 'month', label: 'Month' },
+                          { id: 'year', label: 'Year' },
+                          { id: 'all', label: 'All Time' }
+                        ].map(period =>
+                          React.createElement('button', {
+                            key: period.id,
+                            onClick: () => setStatsTimePeriod(period.id),
+                            className: `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                              statsTimePeriod === period.id 
+                                ? 'bg-blue-500 text-white' 
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`
+                          }, period.label)
+                        )
+                      )
+                    ),
+                    
+                    // Overview Tab
+                    statsTab === 'overview' && React.createElement('div', {},
+                      // Top Stats Cards
+                      React.createElement('div', { className: "grid grid-cols-4 gap-4 mb-6" },
+                        React.createElement('div', { 
+                          className: "bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white"
+                        },
+                          React.createElement('div', { className: "text-sm font-medium opacity-90 mb-1" }, 'Total Goals'),
+                          React.createElement('div', { className: "text-4xl font-bold" }, allGoals.length)
+                        ),
+                        React.createElement('div', { 
+                          className: "bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white"
+                        },
+                          React.createElement('div', { className: "text-sm font-medium opacity-90 mb-1" }, `Completed (${statsTimePeriod})`),
+                          React.createElement('div', { className: "text-4xl font-bold" }, periodStats.totalCompleted),
+                          statsTimePeriod !== 'all' && React.createElement('div', { className: "text-xs opacity-75 mt-1" }, `out of ${periodStats.totalTasks} tasks`)
+                        ),
+                        React.createElement('div', { 
+                          className: "bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white"
+                        },
+                          React.createElement('div', { className: "text-sm font-medium opacity-90 mb-1" }, 'Completion Rate'),
+                          React.createElement('div', { className: "text-4xl font-bold" }, completionRate + '%')
+                        ),
+                        React.createElement('div', { 
+                          className: "bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white"
+                        },
+                          React.createElement('div', { className: "text-sm font-medium opacity-90 mb-1" }, 'Current Streak'),
+                          React.createElement('div', { className: "text-4xl font-bold" }, streakData.currentStreak),
+                          React.createElement('div', { className: "text-xs opacity-75" }, 'days')
+                        )
+                      ),
+                      
+                      // Charts Row  
+                      React.createElement('div', { className: "grid grid-cols-2 gap-6 mb-6" },
+                        // Period Activity Chart
+                        React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                          React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 
+                            statsTimePeriod === 'week' ? 'Last 7 Days' : 
+                            statsTimePeriod === 'month' ? 'Last 30 Days' : 
+                            statsTimePeriod === 'year' ? 'Last 12 Months' : 'All Time Activity'
+                          ),
+                          React.createElement('div', { className: "flex gap-3" },
+                            // Y-axis labels
+                            React.createElement('div', { className: "flex flex-col justify-between text-xs text-gray-500 py-2" }, 
+                              (() => {
+                                const maxVal = Math.max(...periodData.map(d => d.completed), 1);
+                                const niceMax = Math.ceil(maxVal * 1.1); // 10% padding
+                                const step = Math.ceil(niceMax / 4);
+                                return [4, 3, 2, 1, 0].map(i => 
+                                  React.createElement('div', { key: i, className: "text-right pr-2" }, step * i)
+                                );
+                              })()
+                            ),
+                            // Chart area
+                            React.createElement('div', { className: "flex-1" },
+                              React.createElement('div', { className: "relative h-48" },
+                                React.createElement('svg', { 
+                                  viewBox: "0 0 100 100", 
+                                  className: "w-full h-full", 
+                                  preserveAspectRatio: "none",
+                                  style: { overflow: 'visible' }
+                                },
+                                  // Grid lines
+                                  [0, 25, 50, 75, 100].map(y =>
+                                    React.createElement('line', {
+                                      key: y,
+                                      x1: 0,
+                                      y1: y,
+                                      x2: 100,
+                                      y2: y,
+                                      stroke: '#e5e7eb',
+                                      strokeWidth: 0.3
+                                    })
+                                  ),
+                                  // Area fill gradient
+                                  React.createElement('defs', {},
+                                    React.createElement('linearGradient', { id: 'areaGradient', x1: '0', x2: '0', y1: '0', y2: '1' },
+                                      React.createElement('stop', { offset: '0%', stopColor: '#3b82f6', stopOpacity: '0.2' }),
+                                      React.createElement('stop', { offset: '100%', stopColor: '#3b82f6', stopOpacity: '0' })
+                                    )
+                                  ),
+                                  // Area fill
+                                  React.createElement('path', {
+                                    d: (() => {
+                                      const maxVal = Math.max(...periodData.map(d => d.completed), 1);
+                                      const points = periodData.map((d, i) => {
+                                        const x = (i / Math.max(periodData.length - 1, 1)) * 100;
+                                        const y = 100 - ((d.completed / maxVal) * 90);
+                                        return `${x},${y}`;
+                                      });
+                                      const firstX = 0;
+                                      const lastX = 100;
+                                      return `M ${firstX},100 L ${points.map((p, i) => {
+                                        const x = (i / Math.max(periodData.length - 1, 1)) * 100;
+                                        const y = 100 - ((periodData[i].completed / maxVal) * 90);
+                                        return `${x},${y}`;
+                                      }).join(' L ')} L ${lastX},100 Z`;
+                                    })(),
+                                    fill: 'url(#areaGradient)'
+                                  }),
+                                  // Line
+                                  React.createElement('path', {
+                                    d: periodData.map((d, i) => {
+                                      const maxVal = Math.max(...periodData.map(d => d.completed), 1);
+                                      const x = (i / Math.max(periodData.length - 1, 1)) * 100;
+                                      const y = 100 - ((d.completed / maxVal) * 90);
+                                      return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                                    }).join(' '),
+                                    stroke: '#3b82f6',
+                                    strokeWidth: 0.8,
+                                    fill: 'none',
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round'
+                                  }),
+                                  // Dots
+                                  periodData.map((d, i) => {
+                                    const maxVal = Math.max(...periodData.map(d => d.completed), 1);
+                                    const x = (i / Math.max(periodData.length - 1, 1)) * 100;
+                                    const y = 100 - ((d.completed / maxVal) * 90);
+                                    
+                                    return React.createElement('circle', {
+                                      key: `dot-${i}`,
+                                      cx: x,
+                                      cy: y,
+                                      r: 1.2,
+                                      fill: '#3b82f6',
+                                      stroke: 'white',
+                                      strokeWidth: 0.5
+                                    });
+                                  })
+                                )
+                              ),
+                              // X-axis labels
+                              React.createElement('div', { className: "flex justify-between mt-2 text-xs text-gray-500" },
+                                periodData.map((d, i) => {
+                                  // Show fewer labels for better readability
+                                  const showLabel = periodData.length <= 12 || i % Math.ceil(periodData.length / 8) === 0 || i === periodData.length - 1;
+                                  return React.createElement('div', { 
+                                    key: i, 
+                                    className: "text-center",
+                                    style: { 
+                                      flex: 1,
+                                      opacity: showLabel ? 1 : 0
+                                    }
+                                  }, d.day);
+                                })
+                              )
+                            )
+                          )
+                        ),
+                        
+                        // Timeframe Breakdown
+                        React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                          React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Goals by Timeframe'),
+                          React.createElement('div', { className: "flex items-end justify-around h-64 gap-3" },
+                            timeframeBreakdown.map((tf, index) => {
+                              const maxVal = Math.max(...timeframeBreakdown.map(t => t.total), 1);
+                              const completedHeight = (tf.completed / maxVal) * 100;
+                              const pendingHeight = (tf.pending / maxVal) * 100;
+                              const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+                              
+                              return React.createElement('div', { key: index, className: "flex-1 flex flex-col items-center gap-2" },
+                                React.createElement('div', { className: "text-xs font-bold text-gray-700" }, tf.total),
+                                React.createElement('div', { className: "w-full flex flex-col" },
+                                  React.createElement('div', { 
+                                    className: "w-full rounded-t",
+                                    style: { 
+                                      height: completedHeight + '%',
+                                      minHeight: tf.completed > 0 ? '8px' : '0',
+                                      backgroundColor: colors[index]
+                                    }
+                                  }),
+                                  React.createElement('div', { 
+                                    className: "w-full",
+                                    style: { 
+                                      height: pendingHeight + '%',
+                                      minHeight: tf.pending > 0 ? '8px' : '0',
+                                      backgroundColor: colors[index],
+                                      opacity: 0.3
+                                    }
+                                  })
+                                ),
+                                React.createElement('div', { className: "text-xs text-gray-600 text-center mt-1" }, tf.name),
+                                React.createElement('div', { className: "text-xs font-semibold", style: { color: colors[index] } }, tf.rate + '%')
+                              );
+                            })
+                          )
+                        )
+                      ),
+                      
+                      // Category Overview
+                      React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Category Performance'),
+                        React.createElement('div', { className: "space-y-3" },
+                          categoryStats.map((stat, index) => {
+                            const rate = stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0;
+                            const colors = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'];
+                            const cat = categories.find(c => c.name === stat.category);
+                            
+                            return React.createElement('div', { key: index, className: "flex items-center gap-3" },
+                              React.createElement('div', { 
+                                className: "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                                style: { backgroundColor: (cat?.color || colors[index]) + '20' }
+                              },
+                                cat?.icon && React.createElement(cat.icon, { size: 20, style: { color: cat.color } })
+                              ),
+                              React.createElement('div', { className: "flex-1" },
+                                React.createElement('div', { className: "flex justify-between mb-1" },
+                                  React.createElement('span', { className: "text-sm font-medium text-gray-900" }, stat.category),
+                                  React.createElement('span', { className: "text-sm font-semibold text-gray-700" }, `${stat.completed}/${stat.total}`)
+                                ),
+                                React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-2" },
+                                  React.createElement('div', { 
+                                    className: "rounded-full h-2 transition-all",
+                                    style: { 
+                                      width: rate + '%',
+                                      backgroundColor: cat?.color || colors[index % colors.length]
+                                    }
+                                  })
+                                )
+                              ),
+                              React.createElement('div', { className: "text-sm font-bold text-gray-700 w-12 text-right" }, rate + '%')
+                            );
+                          })
+                        )
+                      ),
+                      
+                      // New Charts Row
+                      React.createElement('div', { className: "grid grid-cols-3 gap-6 mb-6 mt-6" },
+                        // Overall Progress Gauge
+                        React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                          React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Overall Progress'),
+                          React.createElement('div', { className: "flex flex-col items-center justify-center" },
+                            React.createElement('svg', { viewBox: "0 0 200 120", className: "w-full h-32" },
+                              // Background arc
+                              React.createElement('path', {
+                                d: "M 20 100 A 80 80 0 0 1 180 100",
+                                fill: "none",
+                                stroke: "#e5e7eb",
+                                strokeWidth: "20",
+                                strokeLinecap: "round"
+                              }),
+                              // Progress arc
+                              React.createElement('path', {
+                                d: (() => {
+                                  const angle = (completionRate / 100) * Math.PI;
+                                  const x = 100 + 80 * Math.cos(Math.PI - angle);
+                                  const y = 100 - 80 * Math.sin(Math.PI - angle);
+                                  const largeArc = completionRate > 50 ? 1 : 0;
+                                  return `M 20 100 A 80 80 0 ${largeArc} 1 ${x} ${y}`;
+                                })(),
+                                fill: "none",
+                                stroke: completionRate >= 75 ? "#10b981" : completionRate >= 50 ? "#3b82f6" : completionRate >= 25 ? "#f59e0b" : "#ef4444",
+                                strokeWidth: "20",
+                                strokeLinecap: "round"
+                              }),
+                              // Center text
+                              React.createElement('text', {
+                                x: "100",
+                                y: "85",
+                                textAnchor: "middle",
+                                className: "text-4xl font-bold",
+                                fill: "#1f2937"
+                              }, completionRate + '%'),
+                              React.createElement('text', {
+                                x: "100",
+                                y: "105",
+                                textAnchor: "middle",
+                                className: "text-xs",
+                                fill: "#6b7280"
+                              }, 'Complete')
+                            ),
+                            React.createElement('div', { className: "text-sm text-gray-600 text-center mt-4" },
+                              `${periodStats.totalCompleted} of ${periodStats.totalTasks} tasks completed`
+                            )
+                          )
+                        ),
+                        
+                        // Priority Distribution Donut
+                        React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                          React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Priority Breakdown'),
+                          React.createElement('div', { className: "flex flex-col items-center" },
+                            (() => {
+                              const priorityData = [
+                                { name: 'Low', count: allGoals.filter(g => (g.priority || 0) === 0).length, color: '#6b7280' },
+                                { name: 'Medium', count: allGoals.filter(g => (g.priority || 0) === 1).length, color: '#f59e0b' },
+                                { name: 'High', count: allGoals.filter(g => (g.priority || 0) === 2).length, color: '#ef4444' }
+                              ];
+                              const total = priorityData.reduce((sum, p) => sum + p.count, 0);
+                              let currentAngle = -90;
+                              
+                              return [
+                                React.createElement('svg', { key: 'donut', viewBox: "0 0 200 200", className: "w-40 h-40" },
+                                  React.createElement('circle', {
+                                    cx: "100",
+                                    cy: "100",
+                                    r: "90",
+                                    fill: "#f9fafb"
+                                  }),
+                                  priorityData.map((p, i) => {
+                                    if (p.count === 0) return null;
+                                    const percentage = p.count / total;
+                                    const angle = percentage * 360;
+                                    const startAngle = currentAngle;
+                                    const endAngle = currentAngle + angle;
+                                    currentAngle = endAngle;
+                                    
+                                    const startRad = (startAngle * Math.PI) / 180;
+                                    const endRad = (endAngle * Math.PI) / 180;
+                                    const x1 = 100 + 70 * Math.cos(startRad);
+                                    const y1 = 100 + 70 * Math.sin(startRad);
+                                    const x2 = 100 + 70 * Math.cos(endRad);
+                                    const y2 = 100 + 70 * Math.sin(endRad);
+                                    const largeArc = angle > 180 ? 1 : 0;
+                                    
+                                    return React.createElement('path', {
+                                      key: i,
+                                      d: `M 100 100 L ${x1} ${y1} A 70 70 0 ${largeArc} 1 ${x2} ${y2} Z`,
+                                      fill: p.color,
+                                      opacity: 0.8
+                                    });
+                                  }),
+                                  React.createElement('circle', {
+                                    cx: "100",
+                                    cy: "100",
+                                    r: "45",
+                                    fill: "white"
+                                  }),
+                                  React.createElement('text', {
+                                    x: "100",
+                                    y: "105",
+                                    textAnchor: "middle",
+                                    className: "text-2xl font-bold",
+                                    fill: "#1f2937"
+                                  }, total),
+                                  React.createElement('text', {
+                                    x: "100",
+                                    y: "120",
+                                    textAnchor: "middle",
+                                    className: "text-xs",
+                                    fill: "#6b7280"
+                                  }, 'Total')
+                                ),
+                                React.createElement('div', { key: 'legend', className: "flex flex-col gap-2 mt-4" },
+                                  priorityData.map((p, i) =>
+                                    React.createElement('div', { key: i, className: "flex items-center gap-2 text-sm" },
+                                      React.createElement('div', {
+                                        className: "w-3 h-3 rounded-full",
+                                        style: { backgroundColor: p.color }
+                                      }),
+                                      React.createElement('span', { className: "text-gray-700" }, `${p.name}: ${p.count}`)
+                                    )
+                                  )
+                                )
+                              ];
+                            })()
+                          )
+                        ),
+                        
+                        // Completion Velocity
+                        React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                          React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Completion Velocity'),
+                          React.createElement('div', { className: "flex flex-col items-center justify-center h-full" },
+                            (() => {
+                              const { startDate } = getTimeRange();
+                              const days = Math.max(1, Math.ceil((new Date() - startDate) / (1000 * 60 * 60 * 24)));
+                              const avgPerDay = (periodStats.totalCompleted / days).toFixed(1);
+                              const projectedMonth = (avgPerDay * 30).toFixed(0);
+                              
+                              return [
+                                React.createElement('div', { key: 'avg', className: "text-center mb-4" },
+                                  React.createElement('div', { className: "text-5xl font-bold text-blue-600" }, avgPerDay),
+                                  React.createElement('div', { className: "text-sm text-gray-600 mt-1" }, 'tasks per day')
+                                ),
+                                React.createElement('div', { key: 'bar', className: "w-full" },
+                                  React.createElement('div', { className: "flex items-end justify-around h-24" },
+                                    [
+                                      { label: 'Daily', value: avgPerDay, max: avgPerDay * 3 },
+                                      { label: 'Week', value: avgPerDay * 7, max: avgPerDay * 10 },
+                                      { label: 'Month', value: projectedMonth, max: projectedMonth * 1.5 }
+                                    ].map((item, i) => {
+                                      const height = Math.min((item.value / item.max) * 100, 100);
+                                      const colors = ['#3b82f6', '#10b981', '#8b5cf6'];
+                                      return React.createElement('div', { key: i, className: "flex-1 flex flex-col items-center gap-1" },
+                                        React.createElement('div', { className: "text-xs font-bold text-gray-700" }, Math.round(item.value)),
+                                        React.createElement('div', {
+                                          className: "w-12 rounded-t",
+                                          style: {
+                                            height: Math.max(height, 10) + '%',
+                                            backgroundColor: colors[i]
+                                          }
+                                        }),
+                                        React.createElement('div', { className: "text-xs text-gray-600 text-center mt-1" }, item.label)
+                                      );
+                                    })
+                                  )
+                                )
+                              ];
+                            })()
+                          )
+                        )
+                      ),
+                      
+                      // Activity Heatmap
+                      React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Activity Heatmap (Last 8 Weeks)'),
+                        React.createElement('div', { className: "overflow-x-auto" },
+                          React.createElement('div', { className: "flex gap-1" },
+                            (() => {
+                              const weeks = 8;
+                              const days = 7;
+                              const heatmapData = [];
+                              const today = new Date();
+                              
+                              for (let week = weeks - 1; week >= 0; week--) {
+                                const weekData = [];
+                                for (let day = 0; day < days; day++) {
+                                  const date = new Date(today);
+                                  date.setDate(date.getDate() - (week * 7 + (6 - day)));
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  const completions = allGoals.reduce((sum, goal) => {
+                                    return sum + (goal.completedDates?.filter(d => d === dateStr).length || 0);
+                                  }, 0);
+                                  weekData.push({ date: dateStr, count: completions, dayName: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][day] });
+                                }
+                                heatmapData.push(weekData);
+                              }
+                              
+                              const maxCount = Math.max(...heatmapData.flat().map(d => d.count), 1);
+                              
+                              return heatmapData.map((week, wi) =>
+                                React.createElement('div', { key: wi, className: "flex flex-col gap-1" },
+                                  week.map((day, di) => {
+                                    const intensity = day.count / maxCount;
+                                    const color = day.count === 0 ? '#f3f4f6' :
+                                                  intensity <= 0.25 ? '#dbeafe' :
+                                                  intensity <= 0.5 ? '#93c5fd' :
+                                                  intensity <= 0.75 ? '#3b82f6' : '#1e40af';
+                                    
+                                    return React.createElement('div', {
+                                      key: di,
+                                      className: "w-6 h-6 rounded-sm relative group cursor-pointer transition-transform hover:scale-110",
+                                      style: { backgroundColor: color },
+                                      title: `${day.date}: ${day.count} tasks`
+                                    },
+                                      wi === 0 && React.createElement('div', {
+                                        className: "absolute -left-6 top-0 text-xs text-gray-500 w-4"
+                                      }, day.dayName)
+                                    );
+                                  })
+                                )
+                              );
+                            })()
+                          )
+                        ),
+                        React.createElement('div', { className: "flex items-center gap-2 mt-4 text-xs text-gray-600" },
+                          React.createElement('span', {}, 'Less'),
+                          [0, 0.25, 0.5, 0.75, 1].map((val, i) =>
+                            React.createElement('div', {
+                              key: i,
+                              className: "w-4 h-4 rounded-sm",
+                              style: {
+                                backgroundColor: i === 0 ? '#f3f4f6' :
+                                                i === 1 ? '#dbeafe' :
+                                                i === 2 ? '#93c5fd' :
+                                                i === 3 ? '#3b82f6' : '#1e40af'
+                              }
+                            })
+                          ),
+                          React.createElement('span', {}, 'More')
+                        )
+                      )
+                    ),
+                    
+                    // Task Performance Tab
+                    statsTab === 'tasks' && React.createElement('div', {},
+                      React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 'Individual Task Performance'),
+                        React.createElement('div', { className: "space-y-2" },
+                          taskPerformance.length === 0 ?
+                            React.createElement('div', { className: "text-center py-8 text-gray-500" }, 'No tasks yet') :
+                            taskPerformance.map((task, index) => {
+                              const priorityColors = ['text-gray-600', 'text-orange-600', 'text-red-600'];
+                              const priorityLabels = ['Low', 'Medium', 'High'];
+                              
+                              return React.createElement('div', {
+                                key: task.id,
+                                className: "flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                              },
+                                React.createElement('div', { className: "text-sm font-semibold text-gray-500 w-8" }, `#${index + 1}`),
+                                React.createElement('div', {
+                                  className: "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs",
+                                  style: { backgroundColor: task.categoryColor }
+                                }, task.completedCount),
+                                React.createElement('div', { className: "flex-1" },
+                                  React.createElement('div', { className: "font-medium text-gray-900" }, task.text),
+                                  React.createElement('div', { className: "text-xs text-gray-600 mt-0.5" },
+                                    task.category + ' â€¢ ' + task.timeframe.charAt(0).toUpperCase() + task.timeframe.slice(1) + ' â€¢ ' + priorityLabels[task.priority]
+                                  ),
+                                  task.targetCompletions && React.createElement('div', { className: "mt-2" },
+                                    React.createElement('div', { className: "flex items-center gap-2 text-xs" },
+                                      React.createElement('div', { className: "flex-1 bg-gray-200 rounded-full h-2" },
+                                        React.createElement('div', {
+                                          className: "h-2 rounded-full transition-all",
+                                          style: {
+                                            width: `${Math.min((task.completedCount / task.targetCompletions) * 100, 100)}%`,
+                                            backgroundColor: task.categoryColor
+                                          }
+                                        })
+                                      ),
+                                      React.createElement('span', { className: "font-semibold text-gray-700" }, 
+                                        `${task.completedCount}/${task.targetCompletions}`
+                                      )
+                                    )
+                                  )
+                                ),
+                                React.createElement('div', { className: "text-right" },
+                                  React.createElement('div', { className: "text-sm font-bold text-gray-900" }, 
+                                    statsTimePeriod !== 'all' ? `${task.periodCompletedCount} this ${statsTimePeriod}` : `${task.completedCount} total`
+                                  ),
+                                  React.createElement('div', { 
+                                    className: `text-xs ${task.completed ? 'text-green-600' : 'text-gray-500'}`
+                                  }, task.completed ? 'âœ“ Completed' : 'In Progress')
+                                )
+                              );
+                            })
+                        )
+                      )
+                ),
+                    
+                    // Category Analysis Tab  
+                    statsTab === 'categories' && React.createElement('div', {},
+                      // Category Selector
+                      React.createElement('div', { className: "mb-6" },
+                        React.createElement('h3', { className: "text-lg font-semibold mb-3" }, 'Select Category'),
+                        React.createElement('div', { className: "flex flex-wrap gap-2" },
+                          React.createElement('button', {
+                            onClick: () => setStatsCategoryFilter('all'),
+                            className: `px-4 py-2 rounded-lg font-medium transition-colors ${
+                              statsCategoryFilter === 'all'
+                                ? 'bg-gray-800 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`
+                          }, 'All Categories'),
+                          categories.map(cat =>
+                            React.createElement('button', {
+                              key: cat.id,
+                              onClick: () => setStatsCategoryFilter(cat.id),
+                              className: `px-4 py-2 rounded-lg font-medium transition-colors`,
+                              style: {
+                                backgroundColor: statsCategoryFilter === cat.id ? cat.color : cat.color + '20',
+                                color: statsCategoryFilter === cat.id ? 'white' : cat.color
+                              }
+                            }, cat.name)
+                          )
+                        )
+                      ),
+                      
+                      // Category Cards
+                      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" },
+                        categoryStats.map((stat, index) => {
+                          const rate = stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0;
+                          const cat = categories.find(c => c.name === stat.category);
+                          const color = cat?.color || ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'][index % 6];
+                          
+                          return React.createElement('div', { 
+                            key: index,
+                            className: "bg-white rounded-xl border border-gray-200 p-5"
+                          },
+                            React.createElement('div', { className: "flex items-center gap-3 mb-4" },
+                              React.createElement('div', { 
+                                className: "w-12 h-12 rounded-xl flex items-center justify-center",
+                                style: { backgroundColor: color + '20' }
+                              },
+                                cat?.icon && React.createElement(cat.icon, { size: 24, style: { color: color } })
+                              ),
+                              React.createElement('div', { className: "flex-1" },
+                                React.createElement('div', { className: "font-bold text-gray-900" }, stat.category),
+                                React.createElement('div', { className: "text-xs text-gray-600" }, `${stat.total} total goals`)
+                              )
+                            ),
+                            React.createElement('div', { className: "space-y-2" },
+                              React.createElement('div', { className: "flex justify-between text-sm" },
+                                React.createElement('span', { className: "text-gray-600" }, 'Progress'),
+                                React.createElement('span', { className: "font-bold" }, `${stat.completed}/${stat.total}`)
+                              ),
+                              React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-3" },
+                                React.createElement('div', { 
+                                  className: "rounded-full h-3 transition-all flex items-center justify-end pr-2",
+                                  style: { 
+                                    width: rate + '%',
+                                    backgroundColor: color,
+                                    minWidth: rate > 0 ? '20px' : '0'
+                                  }
+                                },
+                                  rate > 15 && React.createElement('span', { className: "text-xs font-bold text-white" }, rate + '%')
+                                )
+                              ),
+                              rate <= 15 && React.createElement('div', { className: "text-right text-xs font-bold", style: { color: color } }, rate + '%')
+                            ),
+                            React.createElement('div', { className: "mt-4 pt-4 border-t border-gray-100 flex justify-between text-xs" },
+                              React.createElement('span', { className: "text-green-600 font-medium" }, `âœ“ ${stat.completed} compl`),
+                              React.createElement('span', { className: "text-gray-500" }, `${stat.pending} pending`)
+                            )
+                          );
+                        })
+                      ),
+                      
+                      // Filtered Category Tasks
+                      statsCategoryFilter !== 'all' && React.createElement('div', { className: "mt-6 bg-white rounded-xl border border-gray-200 p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-4" }, 
+                          'Tasks in ' + (categories.find(c => c.id === statsCategoryFilter)?.name || 'Category')
+                        ),
+                        React.createElement('div', { className: "space-y-2" },
+                          allGoals.filter(g => g.category === statsCategoryFilter).length === 0 ?
+                            React.createElement('div', { className: "text-center py-8 text-gray-500" }, 'No tasks in this category') :
+                            allGoals.filter(g => g.category === statsCategoryFilter).map(goal => {
+                              const completedCount = (goal.completedDates || []).length;
+                              return React.createElement('div', {
+                                key: goal.id,
+                                className: `flex items-center gap-3 p-3 rounded-lg ${goal.completed ? 'bg-green-50' : 'bg-gray-50'}`
+                              },
+                                React.createElement('div', {
+                                  className: "w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold",
+                                  style: { backgroundColor: categories.find(c => c.id === goal.category)?.color }
+                                }, completedCount),
+                                React.createElement('div', { className: "flex-1" },
+                                  React.createElement('div', { className: "font-medium text-gray-900" }, goal.text),
+                                  React.createElement('div', { className: "text-xs text-gray-600" }, 
+                                    goal.timeframe.charAt(0).toUpperCase() + goal.timeframe.slice(1) + ' â€¢ ' + goal.time
+                                  )
+                                ),
+                                React.createElement('div', { className: `text-xs font-medium ${goal.completed ? 'text-green-600' : 'text-gray-500'}` },
+                                  goal.completed ? 'âœ" Completed' : 'Active'
+                                )
+                              );
+                            })
+                        )
+                      )
+                    ),
+                    
+                    // Remove old performance tab since we don't need it anymore
+                    statsTab === 'performance' && React.createElement('div', {},
+                      React.createElement('div', { className: "bg-white rounded-xl border border-gray-200 p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-6" }, 'Streaks'),
+                        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+                          React.createElement('div', { className: "text-center p-8 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl" },
+                            React.createElement('div', { className: "text-5xl font-bold text-orange-600 mb-2" }, streakData.currentStreak),
+                            React.createElement('div', { className: "text-gray-700 font-medium" }, 'Current Streak'),
+                            React.createElement('div', { className: "text-sm text-gray-600 mt-1" }, 'days in a row')
+                          ),
+                          React.createElement('div', { className: "text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl" },
+                            React.createElement('div', { className: "text-5xl font-bold text-purple-600 mb-2" }, streakData.longestStreak),
+                            React.createElement('div', { className: "text-gray-700 font-medium" }, 'Best Streak'),
+                            React.createElement('div', { className: "text-sm text-gray-600 mt-1" }, 'days total')
+                          )
+                        )
+                      )
+                    )
+                  );
+                  } catch (error) {
+                    console.error('Statistics error:', error);
+                    return React.createElement('div', { className: "w-full max-w-7xl mx-auto" },
+                      React.createElement('div', { className: "bg-red-50 border border-red-200 rounded-lg p-8 text-center" },
+                        React.createElement('h3', { className: "text-lg font-bold text-red-800 mb-2" }, 'Error Loading Statistics'),
+                        React.createElement('p', { className: "text-red-600" }, 'There was an error loading the statistics. Please try refreshing the page.'),
+                        React.createElement('p', { className: "text-xs text-red-500 mt-2" }, error.toString())
+                      )
+                    );
+                  }
+                })(),
+                activeView === 'notes' && React.createElement('div', { className: "max-w-3xl mx-auto p-6" },
+                  React.createElement('div', { className: "mb-6" },
+                    !showAddNote && React.createElement('button', {
+                      onClick: () => setShowAddNote(true),
+                      className: "w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
+                    },
+                      React.createElement(Plus, { size: 20 }),
+                      React.createElement('span', { className: "font-medium" }, 'Add Note')
+                    ),
+                    showAddNote && React.createElement('div', { className: "p-4 bg-white rounded-lg border border-gray-200" },
+                      React.createElement('textarea', {
+                        value: newNoteText,
+                        onChange: (e) => setNewNoteText(e.target.value),
+                        placeholder: "Write your thoughts...",
+                        className: "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 min-h-32",
+                        rows: 4
+                      }),
+                      React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('button', {
+                          onClick: addNote,
+                          className: "px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                        }, 'Save Note'),
+                        React.createElement('button', {
+                          onClick: () => {
+                            setShowAddNote(false);
+                            setNewNoteText('');
+                          },
+                          className: "px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                        }, 'Cancel')
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-4" },
+                    notes.length === 0 ?
+                      React.createElement('div', { className: "text-center py-12 text-gray-400" },
+                        React.createElement('p', {}, 'No notes yet. Add one to get started!')
+                      ) :
+                      notes.map(note =>
+                        React.createElement('div', {
+                          key: note.id,
+                          className: "bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow"
+                        },
+                          React.createElement('div', { className: "flex items-start justify-between gap-3" },
+                            React.createElement('div', { className: "flex-1" },
+                              React.createElement('p', { className: "text-gray-800 whitespace-pre-wrap" }, note.text),
+                              React.createElement('p', { className: "text-xs text-gray-500 mt-2" },
+                                new Date(note.createdAt).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                })
+                              )
+                            ),
+                            React.createElement('button', {
+                              onClick: () => deleteNote(note.id),
+                              className: "text-gray-400 hover:text-red-500 transition-colors"
+                            },
+                              React.createElement(Trash2, { size: 18 })
+                            )
+                          )
+                        )
+                      )
+                  )
+                )
+              )
+            )
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(GoalTracker));
+    </script>
+</body>
+</html>
