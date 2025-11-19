@@ -90,7 +90,8 @@ class CanvasHandler {
       dt: document.getElementById('plot-dt'),
       rf: document.getElementById('plot-rf'),
       xgb: document.getElementById('plot-xgb'),
-      nn: document.getElementById('plot-nn')
+      nn: document.getElementById('plot-nn'),
+      clustering: document.getElementById('plot-clustering')
     };
     this.contexts = {};
     Object.keys(this.canvases).forEach(key => {
@@ -695,6 +696,73 @@ class CanvasHandler {
         ctx.stroke();
       }
     });
+  }
+
+  drawClustering(points, assignments, centers) {
+    const canvas = this.canvases.clustering;
+    if (!canvas) return;
+    const ctx = this.contexts.clustering;
+
+    // Clear
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid and axes
+    this.drawGrid(ctx, canvas);
+    this.drawAxes(ctx, canvas);
+
+    // Colors for clusters
+    const colors = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#a855f7', '#84cc16'];
+
+    // Draw points colored by cluster
+    points.forEach((point, idx) => {
+      const [px, py] = AppUtils.dataToPx(point.x, point.y, canvas);
+      const clusterIdx = assignments && assignments[idx] !== undefined ? assignments[idx] : -1;
+
+      if (clusterIdx >= 0) {
+        ctx.fillStyle = colors[clusterIdx % colors.length];
+      } else {
+        ctx.fillStyle = '#1f2937';
+      }
+
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    // Draw centroids (for K-means)
+    if (centers && centers.length > 0) {
+      centers.forEach((center, idx) => {
+        const [px, py] = AppUtils.dataToPx(center.x, center.y, canvas);
+
+        // Draw centroid as a larger X marker
+        ctx.strokeStyle = colors[idx % colors.length];
+        ctx.lineWidth = 4;
+
+        // Draw X
+        const size = 10;
+        ctx.beginPath();
+        ctx.moveTo(px - size, py - size);
+        ctx.lineTo(px + size, py + size);
+        ctx.moveTo(px + size, py - size);
+        ctx.lineTo(px - size, py + size);
+        ctx.stroke();
+
+        // Draw outline
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px, py, size + 2, 0, 2 * Math.PI);
+        ctx.stroke();
+      });
+    }
+
+    // Update point count
+    const countEl = document.getElementById('clustering-point-count');
+    if (countEl) countEl.textContent = points.length;
   }
 
   setupEvents() {

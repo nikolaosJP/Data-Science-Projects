@@ -14,6 +14,8 @@ An interactive web application for learning machine learning algorithms and stat
 
 **Recommendation Systems**: Content-Based Filtering with item features and user profiles, Collaborative Filtering with matrix factorization. Implements standard item-based collaborative filtering formula with similarity measures (cosine, Euclidean). Interactive rating matrix editor with step-by-step algorithm explanations.
 
+**Clustering**: K-Means Clustering with k-means++ initialization, step-by-step iteration visualization, inertia and silhouette metrics. Hierarchical Clustering (Agglomerative) with single/complete/average linkage, merge history, and dendrogram visualization. Interactive canvas for adding data points with real-time cluster coloring.
+
 ## Setup
 
 ```bash
@@ -32,6 +34,8 @@ Visit http://127.0.0.1:5000
 **Statistics tabs**: Add data points by clicking canvas regions. View detailed calculations, test statistics, and distribution plots.
 
 **Recommendation Systems tab**: Edit user-movie rating matrix and movie feature matrix directly in the tables. Content-Based: Select similarity measure, compute recommendations based on movie features and user preferences. Collaborative Filtering: Initialize matrix factorization, train with gradient descent to learn latent factors. View step-by-step formula derivations, loss curves, and predicted ratings with detailed tooltips.
+
+**Clustering tab**: Click canvas to add points, right-click to remove. Use "Sample Data" for pre-generated clusters. K-Means: Set K, initialize, then step through iterations or auto-run to convergence. Watch centroids move and points get colored by cluster. Hierarchical: Select linkage method, set number of clusters, compute to see merge history and dendrogram.
 
 ## Architecture
 

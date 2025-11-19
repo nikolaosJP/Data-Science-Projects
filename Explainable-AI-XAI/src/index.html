@@ -20,6 +20,7 @@
     <div class="tab" data-tab="nonlinear">Nonlinear Models</div>
     <div class="tab" data-tab="stats">Statistics</div>
     <div class="tab" data-tab="recsys">Recommendation Systems</div>
+    <div class="tab" data-tab="clustering">Clustering</div>
   </div>
 
   <div class="panel" id="general-controls-panel">
@@ -1094,6 +1095,160 @@
           <div class="values-grid">
             <div class="value-box"><strong>RMSE</strong><div id="cf-rmse">—</div></div>
             <div class="value-box"><strong>MAE</strong><div id="cf-mae">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clustering Tab -->
+  <div class="tab-content" id="tab-clustering">
+    <div class="panel">
+      <h3>Clustering Analysis</h3>
+
+      <!-- Main grid: Canvas on left, K-Means controls on right -->
+      <div class="main-grid">
+        <div class="panel">
+          <canvas id="plot-clustering" width="800" height="500"></canvas>
+          <div class="hint">Click to add points • Right-click to delete last point</div>
+          <div class="controls">
+            <button id="clustering-clear">Clear</button>
+            <button id="clustering-sample">Sample Data</button>
+            <span><strong>Points: </strong><span id="clustering-point-count">0</span></span>
+          </div>
+        </div>
+
+        <div>
+          <!-- K-Means Clustering Controls -->
+          <div class="panel">
+            <h4>K-Means Clustering</h4>
+            <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+              <p style="margin:4px 0;font-size:12px;"><strong>What is K-Means?</strong> Partitions data into K clusters by iteratively assigning points to nearest centroid and updating centroids.</p>
+            </div>
+
+            <label>Number of Clusters (K): <input id="kmeans-k" type="number" min="2" max="10" value="3" style="width:60px;"></label>
+
+            <div class="controls">
+              <button id="init-kmeans" class="warning">Initialize</button>
+              <button id="next-kmeans" class="success" disabled>Next Iteration</button>
+              <button id="auto-kmeans">Auto</button>
+              <button id="reset-kmeans">Reset</button>
+            </div>
+
+            <div class="iteration-info">
+              <strong>Iteration: </strong><span id="kmeans-iter">0</span> •
+              <strong>Inertia: </strong><span id="kmeans-inertia">—</span>
+            </div>
+
+            <!-- Algorithm Steps -->
+            <div id="kmeans-equations" style="display:none; margin-top: 16px;">
+              <h4>Algorithm Steps</h4>
+              <div class="calculations">
+                <div class="calc-step"><strong>Step 1: Initialize K Centroids</strong></div>
+                <div class="calc-step"><span id="kmeans-eq-init"></span></div>
+
+                <div class="calc-step" style="margin-top: 12px;"><strong>Step 2: Assign Points to Nearest Centroid</strong></div>
+                <div class="calc-step"><span id="kmeans-eq-assign"></span></div>
+
+                <div class="calc-step" style="margin-top: 12px;"><strong>Step 3: Update Centroids</strong></div>
+                <div class="calc-step"><span id="kmeans-eq-update"></span></div>
+
+                <div class="calc-step" style="margin-top: 12px;"><strong>Step 4: Compute Inertia (Loss)</strong></div>
+                <div class="calc-step"><span id="kmeans-eq-loss"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- K-Means Results (below the grid) -->
+      <div id="kmeans-results" style="display:none; margin-top: 20px;">
+        <div class="panel">
+          <h4>Current Iteration Details</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="kmeans-step-display"></span></div>
+          </div>
+
+          <h4>Cluster Assignments</h4>
+          <div class="table-container">
+            <table id="kmeans-assignments-table"></table>
+          </div>
+
+          <h4>Cluster Centroids</h4>
+          <div class="table-container">
+            <table id="kmeans-centers-table"></table>
+          </div>
+
+          <h4>Metrics</h4>
+          <div class="values-grid">
+            <div class="value-box"><strong>Inertia</strong><div id="kmeans-inertia-val">—</div></div>
+            <div class="value-box"><strong>Silhouette</strong><div id="kmeans-silhouette">—</div></div>
+            <div class="value-box"><strong>Points</strong><div id="kmeans-n-points">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hierarchical Clustering -->
+      <div class="panel">
+        <h4>Hierarchical Clustering (Agglomerative)</h4>
+        <div class="calculations" style="background:#e0f2fe;padding:8px;border-radius:4px;margin:8px 0;">
+          <p style="margin:4px 0;font-size:12px;"><strong>What is Hierarchical Clustering?</strong> A bottom-up clustering approach that starts with each point as its own cluster, then repeatedly merges the two closest clusters until only one remains. The result is a dendrogram showing the hierarchy of clusters.</p>
+        </div>
+
+        <label>Linkage Method:
+          <select id="hierarchical-linkage">
+            <option value="single">Single (Min Distance)</option>
+            <option value="complete">Complete (Max Distance)</option>
+            <option value="average" selected>Average (Mean Distance)</option>
+          </select>
+        </label>
+
+        <label>Number of Clusters: <input id="hierarchical-n-clusters" type="number" min="1" max="10" value="3" style="width:60px;"></label>
+
+        <div class="controls">
+          <button id="compute-hierarchical" class="primary">Compute Clustering</button>
+          <button id="reset-hierarchical">Reset</button>
+        </div>
+
+        <!-- Algorithm Steps -->
+        <div id="hierarchical-equations" style="display:none; margin-top: 16px;">
+          <h4>Algorithm Steps</h4>
+          <div class="calculations">
+            <div class="calc-step"><strong>Step 1: Initialize Distance Matrix</strong></div>
+            <div class="calc-step"><span id="hierarchical-eq-init"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 2: Find Closest Clusters</strong></div>
+            <div class="calc-step"><span id="hierarchical-eq-find"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 3: Merge Clusters</strong></div>
+            <div class="calc-step"><span id="hierarchical-eq-merge"></span></div>
+
+            <div class="calc-step" style="margin-top: 12px;"><strong>Step 4: Update Distance Matrix</strong></div>
+            <div class="calc-step"><span id="hierarchical-eq-update"></span></div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="hierarchical-results" style="display:none">
+          <h4>Merge History</h4>
+          <div class="calculations">
+            <div class="calc-step"><span id="hierarchical-merge-history"></span></div>
+          </div>
+
+          <h4>Final Cluster Assignments</h4>
+          <div class="table-container">
+            <table id="hierarchical-assignments-table"></table>
+          </div>
+
+          <h4>Dendrogram</h4>
+          <div class="panel" style="background:#f8fafc;padding:12px;">
+            <canvas id="hierarchical-dendrogram" width="600" height="300"></canvas>
+          </div>
+
+          <h4>Metrics</h4>
+          <div class="values-grid">
+            <div class="value-box"><strong>Clusters</strong><div id="hierarchical-n-clusters-val">—</div></div>
+            <div class="value-box"><strong>Points</strong><div id="hierarchical-n-points">—</div></div>
           </div>
         </div>
       </div>

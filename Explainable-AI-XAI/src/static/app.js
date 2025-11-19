@@ -45,6 +45,10 @@ class App {
     this.recommendationSystem = new RecommendationSystem();
     this.contentBasedFiltering = new ContentBasedFiltering(this.recommendationSystem);
     this.collaborativeFiltering = new CollaborativeFiltering(this.recommendationSystem);
+    this.clusteringManager = new ClusteringManager();
+    this.kMeansClustering = new KMeansClustering(this.clusteringManager);
+    this.hierarchicalClustering = new HierarchicalClustering(this.clusteringManager);
+    this.clusteringPoints = [];
 
     this.setupEventHandlers();
     this.initializeFormulas();
@@ -186,6 +190,27 @@ class App {
     document.getElementById('auto-cf').onclick = () => this.autoCF();
     document.getElementById('reset-cf').onclick = () => this.resetCF();
 
+    // Clustering Controls - Canvas
+    document.getElementById('clustering-clear').onclick = () => this.clearClustering();
+    document.getElementById('clustering-sample').onclick = () => this.sampleClustering();
+
+    // Clustering canvas events
+    const clusteringCanvas = document.getElementById('plot-clustering');
+    if (clusteringCanvas) {
+      clusteringCanvas.addEventListener('contextmenu', e => e.preventDefault());
+      clusteringCanvas.addEventListener('mousedown', e => this.onClusteringCanvasClick(e, clusteringCanvas));
+    }
+
+    // Clustering Controls - K-Means
+    document.getElementById('init-kmeans').onclick = () => this.initKMeans();
+    document.getElementById('next-kmeans').onclick = () => this.nextKMeansIter();
+    document.getElementById('auto-kmeans').onclick = () => this.autoKMeans();
+    document.getElementById('reset-kmeans').onclick = () => this.resetKMeans();
+
+    // Clustering Controls - Hierarchical
+    document.getElementById('compute-hierarchical').onclick = () => this.computeHierarchical();
+    document.getElementById('reset-hierarchical').onclick = () => this.resetHierarchical();
+
     // General Controls
     document.getElementById('clear').onclick = () => this.clear();
     document.getElementById('sample').onclick = () => this.generateSample();
@@ -218,10 +243,10 @@ class App {
     if (tabContent) tabContent.classList.add('active');
     this.activeTab = tab;
 
-    // Hide general controls for Recommendation Systems tab
+    // Hide general controls for Recommendation Systems and Clustering tabs
     const generalControls = document.getElementById('general-controls-panel');
     if (generalControls) {
-      generalControls.style.display = (tab === 'recsys') ? 'none' : 'block';
+      generalControls.style.display = (tab === 'recsys' || tab === 'clustering') ? 'none' : 'block';
     }
 
     // Redraw canvas when switching tabs
@@ -643,6 +668,8 @@ class App {
       } else if (this.activeNLTab === 'nn' && this.models.nn.fitted) {
         this.drawNNLossPlot();
       }
+    } else if (this.activeTab === 'clustering') {
+      this.drawClusteringCanvas();
     }
 
     // Update point count
@@ -1545,6 +1572,163 @@ class App {
     const heatmapCanvas = document.getElementById('cf-heatmap');
     const heatmapCtx = heatmapCanvas.getContext('2d');
     heatmapCtx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+  }
+
+  // ============================================================================
+  // CLUSTERING METHODS
+  // ============================================================================
+
+  onClusteringCanvasClick(e, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (e.clientX - rect.left) * scaleX;
+    const py = (e.clientY - rect.top) * scaleY;
+
+    if (e.button === 2) {
+      // Right-click: remove last point
+      if (this.clusteringPoints.length > 0) {
+        this.clusteringPoints.pop();
+        this.drawClusteringCanvas();
+      }
+      return;
+    }
+
+    // Left-click: add point
+    const [x, y] = AppUtils.pxToData(px, py, canvas);
+    this.clusteringPoints.push({ x, y });
+    this.drawClusteringCanvas();
+  }
+
+  clearClustering() {
+    this.clusteringPoints = [];
+    this.resetKMeans();
+    this.resetHierarchical();
+    this.drawClusteringCanvas();
+  }
+
+  sampleClustering() {
+    this.clusteringPoints = [];
+
+    // Generate 3 clusters with random points
+    const centers = [
+      { x: 2, y: 2 },
+      { x: 8, y: 8 },
+      { x: 5, y: 3 }
+    ];
+
+    for (let c = 0; c < 3; c++) {
+      for (let i = 0; i < 5; i++) {
+        const x = centers[c].x + (Math.random() - 0.5) * 3;
+        const y = centers[c].y + (Math.random() - 0.5) * 3;
+        this.clusteringPoints.push({
+          x: Math.max(0, Math.min(10, x)),
+          y: Math.max(0, Math.min(10, y))
+        });
+      }
+    }
+
+    this.drawClusteringCanvas();
+  }
+
+  drawClusteringCanvas() {
+    const assignments = this.kMeansClustering.initialized ? this.kMeansClustering.assignments :
+                        (this.hierarchicalClustering.assignments.length > 0 ? this.hierarchicalClustering.assignments : null);
+    const centers = this.kMeansClustering.initialized ? this.kMeansClustering.centers : null;
+    this.canvas.drawClustering(this.clusteringPoints, assignments, centers);
+  }
+
+  initKMeans() {
+    try {
+      this.kMeansClustering.initialize();
+      this.drawClusteringCanvas();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  nextKMeansIter() {
+    try {
+      this.kMeansClustering.trainIteration();
+      this.drawClusteringCanvas();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  autoKMeans() {
+    try {
+      if (!this.kMeansClustering.initialized) {
+        this.kMeansClustering.initialize();
+      }
+      // Override the autoRun to also draw canvas
+      const originalAutoRun = this.kMeansClustering.autoRun.bind(this.kMeansClustering);
+      const self = this;
+      this.kMeansClustering.autoRun = function() {
+        if (this.autoRunning) return;
+        this.autoRunning = true;
+
+        const maxIterations = 100;
+        const runStep = () => {
+          if (!this.autoRunning || this.iteration >= maxIterations) {
+            this.stopAutoRun();
+            return;
+          }
+
+          try {
+            const converged = this.trainIteration();
+            self.drawClusteringCanvas();
+            if (converged) {
+              this.stopAutoRun();
+              return;
+            }
+            this.autoTimeoutId = setTimeout(runStep, 200);
+          } catch (e) {
+            this.stopAutoRun();
+            alert(e.message);
+          }
+        };
+
+        runStep();
+      };
+      this.kMeansClustering.autoRun();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  resetKMeans() {
+    this.kMeansClustering.stopAutoRun();
+    this.kMeansClustering.reset();
+    document.getElementById('next-kmeans').disabled = true;
+    document.getElementById('kmeans-iter').textContent = '0';
+    document.getElementById('kmeans-inertia').textContent = '—';
+    document.getElementById('kmeans-equations').style.display = 'none';
+    document.getElementById('kmeans-results').style.display = 'none';
+    this.drawClusteringCanvas();
+  }
+
+  computeHierarchical() {
+    try {
+      this.hierarchicalClustering.computeClustering();
+      this.drawClusteringCanvas();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  resetHierarchical() {
+    this.hierarchicalClustering.reset();
+    document.getElementById('hierarchical-equations').style.display = 'none';
+    document.getElementById('hierarchical-results').style.display = 'none';
+
+    // Clear dendrogram canvas
+    const dendroCanvas = document.getElementById('hierarchical-dendrogram');
+    if (dendroCanvas) {
+      const ctx = dendroCanvas.getContext('2d');
+      ctx.clearRect(0, 0, dendroCanvas.width, dendroCanvas.height);
+    }
+    this.drawClusteringCanvas();
   }
 
   initializeFormulas() {
