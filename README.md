@@ -37,10 +37,8 @@ Where math meets money (responsibly, of course)
 Automating the boring stuff so I can focus on the interesting stuff
 </h6>
 
-[AI Resume Tailor](https://github.com/nikolaosJP/Projects/tree/main/Resume-Tailor): Uses Google's Gemini API to customize your LaTeX resume for each job application. Because manually tweaking resumes is nobody's idea of fun.
-
-[Cost of Living Scraper](https://github.com/nikolaosJP/Projects/tree/main/Cost-of-Living-Scraper): Scrapes Numbeo for cost-of-living data across countries and cities. Outputs clean Parquet files for analysis. Great for digital nomads and data nerds.
-
+[AI Resume Tailor](https://github.com/nikolaosJP/Projects/tree/main/Resume-Tailor): Uses Google's Gemini API to customize your LaTeX resume for each job application. Because manually tweaking resumes is nobody's idea of fun.  
+[Cost of Living Scraper](https://github.com/nikolaosJP/Projects/tree/main/Cost-of-Living-Scraper): Scrapes Numbeo for cost-of-living data across countries and cities. Outputs clean Parquet files for analysis. Great for digital nomads and data nerds.  
 [Goal Tracker](https://github.com/nikolaosJP/Projects/tree/main/Goal-Tracker): A lightweight goal management app for tracking daily, weekly, monthly, and annual objectives. React frontend + Python backend, no build step required. (Work in progress)
 
 
