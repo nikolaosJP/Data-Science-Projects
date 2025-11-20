@@ -1258,7 +1258,11 @@
 
 <!-- Load modules in order: utilities first, then solvers, then main app -->
 <script src="{{ url_for('static', filename='utils.js') }}"></script>
-<script src="{{ url_for('static', filename='solvers.js') }}"></script>
+<script src="{{ url_for('static', filename='solvers/linear-models.js') }}"></script>
+<script src="{{ url_for('static', filename='solvers/nonlinear-models.js') }}"></script>
+<script src="{{ url_for('static', filename='solvers/statistics.js') }}"></script>
+<script src="{{ url_for('static', filename='solvers/recsys.js') }}"></script>
+<script src="{{ url_for('static', filename='solvers/clustering.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

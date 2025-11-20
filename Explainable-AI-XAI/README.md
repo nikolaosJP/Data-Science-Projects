@@ -40,5 +40,4 @@ Visit http://127.0.0.1:5000
 ## Architecture
 
 - **Backend**: Flask 3.0.0 serving static files
-- **Frontend**: Vanilla JavaScript (utils.js, solvers.js, app.js), KaTeX for formulas, Canvas API for rendering
-
+- **Frontend**: Vanilla JavaScript (utils.js, solvers/linear-models.js, solvers/nonlinear-models.js, solvers/statistics.js, solvers/recsys.js, solvers/clustering.js, app.js), KaTeX for formulas, Canvas API for rendering

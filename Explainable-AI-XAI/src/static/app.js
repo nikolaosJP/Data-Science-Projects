@@ -1743,7 +1743,32 @@ class App {
   }
 }
 
-// Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  window.App = new App();
-});
+// Initialize app when DOM is loaded and solvers are ready
+function bootstrapApp() {
+  const depsReady = [
+    window.CanvasHandler,
+    window.OLSSolver,
+    window.GradientDescent,
+    window.ManualCalculator,
+    window.LogisticRegression,
+    window.StatisticsCalculator,
+    window.DecisionTree,
+    window.RandomForest,
+    window.XGBoost,
+    window.NeuralNetwork,
+    window.RecommendationSystem,
+    window.ContentBasedFiltering,
+    window.CollaborativeFiltering,
+    window.ClusteringManager,
+    window.KMeansClustering,
+    window.HierarchicalClustering
+  ].every(Boolean);
+
+  if (depsReady) {
+    window.App = new App();
+  } else {
+    setTimeout(bootstrapApp, 10);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', bootstrapApp);
