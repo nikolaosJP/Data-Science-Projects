@@ -2,6 +2,10 @@
 
 An interactive financial calculator that helps you make informed decisions about renting versus buying a home. Built with React, Vite, and Recharts to visualize long-term financial outcomes under different scenarios.
 
+## Preview
+
+![Rent vs Buy Simulator](example.png)
+
 ## What It Does
 
 Compares the financial implications of renting versus buying a property over time, considering:
