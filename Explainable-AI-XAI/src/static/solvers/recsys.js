@@ -420,77 +420,94 @@ class ContentBasedFiltering {
     AppUtils.kRender(document.getElementById('cb-step2-tex'), step2Tex, true);
 
     // ============================================
-    // STEP 3: Compute Item-to-Item Similarities Based on Content Features
+    // STEP 3: Compute Similarity Between User Profiles and Movie Features
     // ============================================
-    const itemSimilarityMatrix = []; // [numMovies][numMovies] - similarity between movies
-    let step3Tex = `\\text{Compute similarity between each pair of movies based on their features:}\\\\\\\\`;
+    const userMovieSimilarities = []; // [numUsers][numMovies]
+    let step3Tex = `\\begin{aligned}`;
+    step3Tex += `\\textbf{Compute similarity between each user profile and every movie's content features}`;
 
-    for (let i = 0; i < numMovies; i++) {
-      const similarities = [];
-      step3Tex += `\\text{Movie } ${i+1} \\text{ (${movieNames[i]}) similarities:}\\\\`;
+    for (let i = 0; i < numUsers; i++) {
+      const simRow = [];
+      const u = userProfiles[i];
+      const normU = Math.sqrt(u.reduce((sum, val) => sum + val * val, 0));
+      step3Tex += `\\\\\\textbf{${userNames[i]}}: \\mathbf{u}_{${i+1}} = [${u.map(v => v.toFixed(2)).join(', ')}]`;
+      if (similarityType === 'cosine') {
+        step3Tex += `,\\;\\|\\mathbf{u}_{${i+1}}\\| = ${normU.toFixed(2)}`;
+      }
 
       for (let j = 0; j < numMovies; j++) {
-        let score;
+        const f = movieFeatures[j];
 
-        if (i === j) {
-          score = 1.0; // Perfect similarity with itself
-          step3Tex += `s(${i+1},${j+1}) = 1.00 \\text{ (self)}\\,`;
+        if (similarityType === 'cosine') {
+          const dotProduct = u.reduce((sum, val, k) => sum + val * f[k], 0);
+          const normF = Math.sqrt(f.reduce((sum, val) => sum + val * val, 0));
+          const score = (normU === 0 || normF === 0) ? 0 : dotProduct / (normU * normF);
+
+          simRow.push(score);
+          const dotExpanded = u.map((val, k) => `${val.toFixed(2)}\\cdot${f[k].toFixed(2)}`).join(' + ');
+          step3Tex += `\\\\\\quad \\mathbf{f}_{${j+1}} = [${f.map(v => v.toFixed(2)).join(', ')}],\\;\\|\\mathbf{f}_{${j+1}}\\| = ${normF.toFixed(2)}`;
+          step3Tex += `\\\\\\quad \\text{sim} = \\frac{${dotExpanded}}{${normU.toFixed(2)} \\cdot ${normF.toFixed(2)}} = \\frac{${dotProduct.toFixed(2)}}{${normU.toFixed(2)} \\cdot ${normF.toFixed(2)}} = ${score.toFixed(2)}`;
         } else {
-          if (similarityType === 'cosine') {
-            const dotProduct = movieFeatures[i].reduce((sum, val, k) => sum + val * movieFeatures[j][k], 0);
-            const normI = Math.sqrt(movieFeatures[i].reduce((sum, val) => sum + val * val, 0));
-            const normJ = Math.sqrt(movieFeatures[j].reduce((sum, val) => sum + val * val, 0));
-            score = (normI === 0 || normJ === 0) ? 0 : dotProduct / (normI * normJ);
+          const squaredDiffs = u.map((val, k) => Math.pow(val - f[k], 2));
+          const distance = Math.sqrt(squaredDiffs.reduce((sum, val) => sum + val, 0));
+          const score = 1.0 / (1.0 + distance); // similarity in [0, 1]
 
-            step3Tex += `s(${i+1},${j+1}) = ${score.toFixed(2)}\\,`;
-          } else {
-            const squaredDiffs = movieFeatures[i].map((val, k) => Math.pow(val - movieFeatures[j][k], 2));
-            const distance = Math.sqrt(squaredDiffs.reduce((sum, val) => sum + val, 0));
-            // Convert distance to similarity: s = 1/(1+d)
-            score = 1.0 / (1.0 + distance);
-
-            step3Tex += `d(${i+1},${j+1}) = ${distance.toFixed(2)}, s(${i+1},${j+1}) = ${score.toFixed(2)}\\,`;
-          }
+          simRow.push(score);
+          const distExpanded = u.map((val, k) => `(${val.toFixed(2)}-${f[k].toFixed(2)})^2`).join(' + ');
+          step3Tex += `\\\\\\quad \\mathbf{f}_{${j+1}} = [${f.map(v => v.toFixed(2)).join(', ')}]`;
+          step3Tex += `\\\\\\quad d = \\sqrt{${distExpanded}} = ${distance.toFixed(2)},\\; s = \\frac{1}{1 + ${distance.toFixed(2)}} = ${score.toFixed(2)}`;
         }
-
-        similarities.push(score);
       }
-      itemSimilarityMatrix.push(similarities);
-      step3Tex += `\\\\`;
+
+      userMovieSimilarities.push(simRow);
     }
 
+    step3Tex += `\\end{aligned}`;
     AppUtils.kRender(document.getElementById('cb-step3-tex'), step3Tex, true);
 
     // ============================================
-    // STEP 4: Display Rating Prediction Formula
+    // STEP 4: Convert Similarity to Predicted Ratings (detailed)
     // ============================================
-    let step4Tex = `\\text{Convert similarity scores to predicted ratings using weighted average:}\\\\\\\\`;
+    const similarityToRating = (simRaw) => {
+      const sim01 = similarityType === 'cosine' ? (simRaw + 1) / 2 : Math.max(0, Math.min(1, simRaw));
+      const ratingVal = Math.max(1, Math.min(5, 1 + 4 * sim01));
+      return { sim01, rating: ratingVal }; // Map to [1, 5]
+    };
 
-    step4Tex += `\\text{Standard Item-Based Collaborative Filtering Formula:}\\\\\\\\`;
-    step4Tex += `\\hat{r}_{ui} = r_{u,\\text{avg}} + \\frac{\\sum_{j \\in \\text{rated}} s(i,j) \\cdot (r_{uj} - r_{u,\\text{avg}})}{\\sum_{j \\in \\text{rated}} |s(i,j)|}\\\\\\\\`;
-    step4Tex += `\\text{where:}\\\\`;
-    step4Tex += `\\hat{r}_{ui} = \\text{predicted rating for user } u \\text{ on item } i\\\\`;
-    step4Tex += `r_{u,\\text{avg}} = \\text{average rating of user } u\\\\`;
-    step4Tex += `s(i,j) = \\text{similarity between target item } i \\text{ and rated item } j\\\\`;
-    step4Tex += `r_{uj} = \\text{user's actual rating for item } j\\\\`;
-    step4Tex += `\\text{Sum over all items } j \\text{ that user } u \\text{ has rated}\\\\\\\\`;
-
+    let step4Tex = `\\begin{aligned}`;
+    step4Tex += `\\textbf{Convert similarity to 1–5 predicted ratings}`;
     if (similarityType === 'cosine') {
-      step4Tex += `\\text{Using cosine similarity } s(i,j) \\in [-1, 1]\\\\`;
-      step4Tex += `\\text{Positive } s(i,j) \\text{ means items are similar}\\\\`;
-      step4Tex += `\\text{Negative } s(i,j) \\text{ means items are dissimilar}`;
+      step4Tex += `\\\\\\text{Step: } \\text{sim}_{01} = \\frac{\\text{sim} + 1}{2},\\; \\hat{r} = 1 + 4 \\times \\text{sim}_{01}`;
     } else {
-      step4Tex += `\\text{Using Euclidean distance } d(i,j) \\in [0, \\infty)\\\\`;
-      step4Tex += `\\text{Convert to similarity: } s(i,j) = \\frac{1}{1 + d(i,j)}\\\\`;
-      step4Tex += `\\text{Smaller distance yields higher similarity}`;
+      step4Tex += `\\\\\\text{Step: } \\text{sim} = \\frac{1}{1 + d},\\; \\hat{r} = 1 + 4 \\times \\text{sim}`;
     }
 
+    for (let i = 0; i < numUsers; i++) {
+      step4Tex += `\\\\\\textbf{${userNames[i]}}:`;
+      for (let j = 0; j < numMovies; j++) {
+        if (ratings[i][j] > 0) {
+          step4Tex += `\\\\\\quad r_{${i+1},${j+1}} = ${ratings[i][j].toFixed(1)} \\text{ (already rated)}`;
+          continue;
+        }
+
+        const rawSim = userMovieSimilarities[i][j];
+        const { sim01, rating } = similarityToRating(rawSim);
+
+        if (similarityType === 'cosine') {
+          step4Tex += `\\\\\\quad \\hat{r}_{${i+1},${j+1}} = 1 + 4 \\times \\frac{${rawSim.toFixed(2)} + 1}{2} = ${rating.toFixed(2)}`;
+        } else {
+          step4Tex += `\\\\\\quad \\hat{r}_{${i+1},${j+1}} = 1 + 4 \\times ${sim01.toFixed(2)} = ${rating.toFixed(2)}`;
+        }
+      }
+    }
+
+    step4Tex += `\\end{aligned}`;
     AppUtils.kRender(document.getElementById('cb-step4-tex'), step4Tex, true);
 
     // ============================================
     // STEP 5: Display Predictions Table
     // ============================================
-    this.displayPredictionsTable(ratings, itemSimilarityMatrix, userNames, movieNames, similarityType);
+    this.displayPredictionsTable(ratings, userMovieSimilarities, userNames, movieNames, similarityType);
 
     document.getElementById('cb-equations').style.display = 'block';
     document.getElementById('cb-results').style.display = 'block';
@@ -542,9 +559,15 @@ class ContentBasedFiltering {
     return Math.sqrt(sumSquares);
   }
 
-  displayPredictionsTable(ratings, itemSimilarityMatrix, userNames, movieNames, similarityType) {
+  displayPredictionsTable(ratings, userMovieSimilarities, userNames, movieNames, similarityType) {
     const numUsers = ratings.length;
     const numMovies = ratings[0].length;
+
+    const mapSimToRating = (simRaw) => {
+      const sim01 = similarityType === 'cosine' ? (simRaw + 1) / 2 : Math.max(0, Math.min(1, simRaw));
+      const ratingVal = Math.max(1, Math.min(5, 1 + 4 * sim01));
+      return { sim01, rating: ratingVal };
+    };
 
     const table = document.getElementById('cb-predictions-table');
     table.innerHTML = '';
@@ -570,12 +593,6 @@ class ContentBasedFiltering {
       nameTh.textContent = userNames[userIdx];
       tr.appendChild(nameTh);
 
-      // Calculate user's average rating (excluding unrated items)
-      const userRatings = ratings[userIdx].filter(r => r > 0);
-      const userAvg = userRatings.length > 0
-        ? userRatings.reduce((a, b) => a + b, 0) / userRatings.length
-        : 3.0; // Default to neutral if no ratings
-
       for (let targetItem = 0; targetItem < numMovies; targetItem++) {
         const td = document.createElement('td');
 
@@ -586,41 +603,19 @@ class ContentBasedFiltering {
           td.innerHTML = `<strong>${actualRating.toFixed(1)}</strong>`;
           td.style.backgroundColor = '#e0f2fe';
         } else {
-          // Not rated - predict using item-based collaborative filtering formula:
-          // r_hat = r_avg + sum(s(i,j) * (r_j - r_avg)) / sum(|s(i,j)|)
+          const rawSim = (userMovieSimilarities[userIdx] && userMovieSimilarities[userIdx][targetItem] !== undefined)
+            ? userMovieSimilarities[userIdx][targetItem]
+            : 0;
+          const { sim01, rating } = mapSimToRating(rawSim);
 
-          let numerator = 0;
-          let denominator = 0;
-          let countRatedItems = 0;
-
-          // Sum over all items j that this user has rated
-          for (let ratedItem = 0; ratedItem < numMovies; ratedItem++) {
-            if (ratings[userIdx][ratedItem] > 0) {
-              const similarity = itemSimilarityMatrix[targetItem][ratedItem];
-              const ratingDeviation = ratings[userIdx][ratedItem] - userAvg;
-
-              numerator += similarity * ratingDeviation;
-              denominator += Math.abs(similarity);
-              countRatedItems++;
-            }
-          }
-
-          let predictedRating;
-          if (countRatedItems > 0 && denominator > 0) {
-            // Apply the formula
-            predictedRating = userAvg + (numerator / denominator);
-          } else {
-            // No rated items - use user average (or neutral rating)
-            predictedRating = userAvg;
-          }
-
-          // Clamp to valid rating range [1, 5]
-          predictedRating = Math.max(1, Math.min(5, predictedRating));
-
-          td.textContent = predictedRating.toFixed(2);
+          td.textContent = rating.toFixed(2);
           td.style.color = '#22c55e';
           td.style.fontWeight = 'bold';
-          td.title = `Formula: ${userAvg.toFixed(2)} + ${numerator.toFixed(3)} / ${denominator.toFixed(3)} = ${predictedRating.toFixed(2)}`;
+          if (similarityType === 'cosine') {
+            td.title = `sim=${rawSim.toFixed(3)}, sim_01=(sim+1)/2=${sim01.toFixed(3)}, rating=1+4*sim_01=${rating.toFixed(2)}`;
+          } else {
+            td.title = `sim=${rawSim.toFixed(3)} (1/(1+d)), rating=1+4*sim=${rating.toFixed(2)}`;
+          }
         }
 
         tr.appendChild(td);

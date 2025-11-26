@@ -28,8 +28,9 @@ Teaching computers to do cool stuff (and occasionally debugging why they do weir
 Where math meets money (responsibly, of course)
 </h6>
 
-[Energy Market Forecasting](https://github.com/nikolaosJP/Projects/tree/main/Energy-Market-Prediction): Day-ahead energy price predictions using XGBoost and Optuna. Achieved €1.38M PNL in backtesting. Disclaimer: Past performance doesn't guarantee future results, but it does make cool visualizations.  
+[Energy Market Forecasting](https://github.com/nikolaosJP/Projects/tree/main/Energy-Market-Prediction): Day-ahead energy price predictions using XGBoost and Optuna. Achieved €1.38M PNL in backtesting. Disclaimer: Past performance doesn't guarantee future results, but it does make cool visualizations.
 [Portfolio Tracker](https://github.com/nikolaosJP/Projects/tree/main/Portfolio-Tracker): Automated analytics for Interactive Brokers accounts. Track performance, get rebalancing recommendations, and see pretty charts. Because spreadsheets are so 2010.
+[Rent vs Buy Simulator](https://github.com/nikolaosJP/Projects/tree/main/Rent-vs-Buy-Simulator): Interactive calculator comparing long-term financial outcomes of renting versus buying property. Includes mortgage analysis, tax deductions, and opportunity cost calculations with visual projections.
 
 
 <h3 style="margin-bottom:0;">Productivity Tools</h3>
